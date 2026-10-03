@@ -1,0 +1,15 @@
+# Local PostgreSQL for development without Supabase (prototype convenience).
+# Matches backend/.env.example DATABASE_URL. Supabase is the target database (README §6).
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: foodresq
+      POSTGRES_PASSWORD: foodresq
+      POSTGRES_DB: foodresq
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
