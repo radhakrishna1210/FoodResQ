@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Form';
 import { InlineError } from '@/components/ui/ErrorState';
 import { cn } from '@/lib/cn';
+import { Logo } from '@/components/layout/Logo';
+import { ImageSlider } from '@/components/media/ImageSlider';
+import { SLIDES } from '@/lib/media';
 
 const ROLE_ICON = { admin: ShieldCheck, donor: Utensils, receiver: HandHeart } as const;
 
@@ -20,8 +23,21 @@ export function AuthCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-10 sm:py-16">
-      <div className="card p-6 sm:p-8">
+    <div className="mx-auto grid w-full max-w-5xl items-stretch gap-0 px-4 py-10 sm:py-14 lg:grid-cols-[1fr_28rem]">
+      <ImageSlider
+        slides={SLIDES}
+        showControls={false}
+        overlay="from-primary/70 via-ink/40 to-ink/20"
+        className="hidden rounded-l-2xl lg:block"
+      >
+        <div className="relative flex h-full flex-col justify-start p-8 text-white">
+          <Logo light className="self-start" />
+          <p className="mt-6 max-w-xs animate-fade-up font-heading text-2xl font-semibold leading-snug">
+            Rescue surplus food. Feed someone today.
+          </p>
+        </div>
+      </ImageSlider>
+      <div className="card animate-fade-up p-6 shadow-lift sm:p-8 lg:rounded-l-none">
         <h1 className="font-heading text-2xl font-semibold text-ink">{title}</h1>
         <p className="mt-1 text-sm text-slate">{subtitle}</p>
         <div className="mt-6">{children}</div>

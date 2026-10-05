@@ -15,7 +15,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Spinner';
 import { Countdown } from '@/components/ui/Countdown';
-import { PageHeader, Section } from '@/components/ui/misc';
+import { DashboardBanner } from '@/components/layout/DashboardBanner';
+import { Section } from '@/components/ui/misc';
 import { formatNumber, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -54,10 +55,13 @@ export default function AdminOverviewPage() {
   const { data, isLoading, isError, error, refetch } = useAdminOverview();
   return (
     <div className="space-y-8">
-      <PageHeader
-        icon={<ShieldCheck size={20} className="text-purple" />}
+      <DashboardBanner
+        icon={<ShieldCheck size={22} />}
+        eyebrow="Admin console"
         title="Admin overview"
         subtitle="What needs your attention right now."
+        tone="purple"
+        offset={3}
       />
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

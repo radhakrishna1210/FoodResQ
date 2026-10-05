@@ -17,7 +17,8 @@ import { Toggle } from '@/components/ui/Form';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { CardSkeleton, Skeleton } from '@/components/ui/Spinner';
-import { PageHeader, Section } from '@/components/ui/misc';
+import { DashboardBanner } from '@/components/layout/DashboardBanner';
+import { Section } from '@/components/ui/misc';
 import { useToast } from '@/components/ui/Toast';
 
 function AvailabilityBar() {
@@ -120,10 +121,13 @@ export default function ReceiverDashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        icon={<HandHeart size={20} className="text-teal-700" />}
+      <DashboardBanner
+        icon={<HandHeart size={22} />}
+        eyebrow="Receiver dashboard"
         title={receiverProfile?.org_name ?? 'Receiver dashboard'}
         subtitle="Incoming food offers and your active pickups."
+        tone="teal"
+        offset={2}
       />
       <AvailabilityBar />
 

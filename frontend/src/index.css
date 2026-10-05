@@ -9,6 +9,10 @@
   }
   body {
     @apply bg-bg font-sans text-ink antialiased;
+    background-image:
+      radial-gradient(60rem 30rem at 100% -10%, rgba(39, 181, 201, 0.07), transparent 60%),
+      radial-gradient(50rem 28rem at -10% 0%, rgba(27, 112, 190, 0.06), transparent 60%);
+    background-attachment: fixed;
   }
   h1,
   h2,
@@ -26,7 +30,7 @@
     @apply rounded-card border border-line bg-white shadow-card;
   }
   .card-hover {
-    @apply transition-shadow duration-150 hover:shadow-lift;
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift;
   }
   .link {
     @apply font-medium text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:underline;
@@ -42,6 +46,18 @@
   }
   .table-base tr:last-child td {
     @apply border-b-0;
+  }
+}
+
+/* Respect users who ask for less motion: stop decorative animation everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
