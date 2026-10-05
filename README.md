@@ -184,7 +184,7 @@ Items marked **Default** were chosen by the documentation author because the tea
 | File storage | Supabase Storage (`donation-photos` public-read via signed URL, `verification-docs` private, `feedback-photos` private) |
 | Realtime | Supabase Realtime (`notifications`, `messages`, `donations` changes) |
 | AI assistant | Google Gemini API (Google AI Studio), called **only from the backend** |
-| Hosting | Frontend on Vercel, backend on Render, database/storage/realtime on Supabase (free or low-cost tiers) |
+| Hosting | Both frontend (static site) and backend (web service) on Render via a single Blueprint (`render.yaml`); database/storage/realtime on Supabase (free or low-cost tiers) |
 | Testing | pytest (backend), Vitest + React Testing Library (frontend) |
 
 ---
