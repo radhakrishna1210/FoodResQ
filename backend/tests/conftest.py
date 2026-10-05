@@ -18,6 +18,7 @@ if TEST_DB:
     os.environ["SUPABASE_URL"] = ""
     os.environ["SUPABASE_SERVICE_ROLE_KEY"] = ""
     os.environ["GEMINI_API_KEY"] = ""
+    os.environ["EMAIL_NOTIFICATIONS_ENABLED"] = "false"
 
 
 def pytest_collection_modifyitems(config, items):

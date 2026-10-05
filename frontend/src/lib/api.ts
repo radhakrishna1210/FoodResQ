@@ -27,6 +27,7 @@ import type {
   MessagesResponse,
   MyImpact,
   NotificationsPage,
+  NearbyDonation,
   Offer,
   OfferStatus,
   OnboardingInput,
@@ -218,6 +219,7 @@ export const api = {
     request<ReceiverProfile>('/receiver/needs', { method: 'PATCH', body: { meals_needed_today } }),
   offers: (params: { status?: OfferStatus; page?: number } = {}) =>
     request<Paginated<Offer>>('/offers', { query: params }),
+  nearbyDonations: () => request<{ items: NearbyDonation[] }>('/receiver/nearby-donations'),
   offer: (id: string) => request<Offer>(`/offers/${id}`),
   acceptOffer: (id: string) => request<Allocation>(`/offers/${id}/accept`, { method: 'POST' }),
   declineOffer: (id: string, reason_code: DeclineReasonCode, note?: string) =>

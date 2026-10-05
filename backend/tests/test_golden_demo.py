@@ -74,7 +74,8 @@ def test_step4_jev_scores():
 def test_step6_offers():
     deadline = _deadlines().effective_deadline
     assert offer_timeout_minutes(deadline, NOW, CFG) == 11
-    assert batch_size("HIGH", CFG) == 2
+    assert batch_size("HIGH", CFG) == 3
+    assert batch_size("MEDIUM", CFG) == 3
     _, cands = evaluate(golden_donation(), golden_receivers(), now=NOW, today_ist=TODAY, cfg=CFG)
     top = [c for c in cands if c.included][:2]
     assert [min(c.capacity_available, 120) for c in top] == [120, 50]

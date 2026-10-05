@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     app_jwt_secret: str = "change-me"  # signs real Google-verified sessions; separate from dev_jwt_secret
     frontend_base_url: str = "http://localhost:5173"
     email_notifications_enabled: bool = False
+    # SMTP for email notifications (services/emailer.py). STARTTLS on 587 unless smtp_secure is true (SSL, 465).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_secure: bool = False
+    smtp_user: str = ""
+    smtp_password: str = ""
+    email_from_name: str = "FoodResQ"
+    email_from: str = ""
 
     # TODO(team): prototype-only dev login; must be false in any deployment.
     dev_auth_enabled: bool = False

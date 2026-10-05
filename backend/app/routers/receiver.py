@@ -18,7 +18,7 @@ from app.schemas.requests import (
     ReasonIn,
     ReceiverProfilePatch,
 )
-from app.services import accounts, allocations, jobs, offers
+from app.services import accounts, allocations, jobs, nearby, offers
 from app.services.views import allocation_dict, offer_dict
 from app.utils.serialize import page as page_out
 from app.utils.serialize import to_dict
@@ -60,6 +60,12 @@ def list_offers(status: str | None = "PENDING", page: int = 1, page_size: int = 
         stmt = stmt.where(Offer.status.in_(status.split(",")))
     rows, p, ps, total = paginate(db, stmt.order_by(Offer.expires_at), page, page_size)
     return page_out([offer_dict(db, o) for o in rows], p, ps, total)
+
+
+@router.get("/receiver/nearby-donations")
+def nearby_donations(user: User = Depends(receiver_active), db: Session = Depends(get_db)):
+    """Open donations this Receiver could take (read-only feed; only top-ranked Receivers get offers)."""
+    return {"items": [to_dict(x) for x in nearby.nearby_donations(db, user)]}
 
 
 @router.get("/offers/{offer_id}")

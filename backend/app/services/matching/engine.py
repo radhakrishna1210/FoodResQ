@@ -60,13 +60,15 @@ def _allocated_today(db: Session, now: datetime) -> dict[uuid.UUID, int]:
     return {r: int(s or 0) for r, s in rows}
 
 
-def load_receivers(db: Session, donation_id: uuid.UUID, now: datetime) -> list[ReceiverCtx]:
+def load_receivers(db: Session, donation_id: uuid.UUID, now: datetime,
+                   only_receiver_id: uuid.UUID | None = None) -> list[ReceiverCtx]:
     held = held_servings_by_receiver(db)
     today_alloc = _allocated_today(db, now)
     offered = set(db.execute(select(Offer.receiver_id).where(Offer.donation_id == donation_id)).scalars())
-    rows = db.execute(
-        select(ReceiverProfile, User).join(User, User.id == ReceiverProfile.user_id).where(User.role == "receiver")
-    ).all()
+    stmt = select(ReceiverProfile, User).join(User, User.id == ReceiverProfile.user_id).where(User.role == "receiver")
+    if only_receiver_id is not None:
+        stmt = stmt.where(ReceiverProfile.user_id == only_receiver_id)
+    rows = db.execute(stmt).all()
     return [
         ReceiverCtx(
             receiver_id=p.user_id,
