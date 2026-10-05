@@ -84,3 +84,15 @@ No Google Maps / Google Earth key is required: maps are OpenStreetMap + Leaflet 
    `match_runs.trigger` for this, so `declined` is used. Suggest adding `partially_accepted`.
 3. Admin manual assignment notifies both parties with `OFFER_ACCEPTED` (no dedicated type in §8.1).
 4. `POST /admin/admins` creates the `users` row for an existing Supabase Auth user id; creating the Auth user itself via the Supabase admin API is a follow-up.
+
+## Top-3 notifications, nearby feed and email (feature/top3-notify-email)
+
+- Each match run now offers (and notifies, in-app + email) the **top 3** ranked Receivers whatever the priority
+  (`app_config.offer_batch_size`, default 3; replaces `high_priority_batch_size`). Cascade, radius widening and
+  first-accept-wins are unchanged.
+- Every active Receiver sees open food that passes the Stage-1 filters in **"Food available near you"** on
+  `/receiver` (`GET /api/v1/receiver/nearby-donations`, read-only). Acceptance still requires an offer.
+- Email over SMTP (`services/emailer.py`): offer received/accepted, pickup reminder, verification result,
+  no-match alert, flagged-donation approve/reject. Sent on a background thread after commit; `@foodresq.demo`
+  addresses are skipped. Set `EMAIL_NOTIFICATIONS_ENABLED=true` and the `SMTP_*` variables.
+- `TODO(team)`: the golden demo has only A and B passing the filters, so it still produces 2 offers.

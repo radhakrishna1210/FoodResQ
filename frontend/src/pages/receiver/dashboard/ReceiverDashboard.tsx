@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { HandHeart, Inbox, Save, Truck } from 'lucide-react';
+import { HandHeart, Inbox, MapPin, Save, Truck } from 'lucide-react';
 import {
   useAllocations,
+  useNearbyDonations,
   useOffers,
   useReceiverProfile,
   useSetAvailability,
@@ -11,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import { todayIST } from '@/lib/format';
 import { errorMessage } from '@/lib/api';
 import { OfferCard } from '@/components/offer/OfferCard';
+import { NearbyFoodCard } from '@/components/offer/NearbyFoodCard';
 import { PickupCard } from '@/components/allocation/PickupCard';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Form';
@@ -108,6 +110,7 @@ export default function ReceiverDashboard() {
   const offers = useOffers({ status: 'PENDING' });
   const accepted = useAllocations({ status: 'ACCEPTED' });
   const collected = useAllocations({ status: 'COLLECTED' });
+  const nearby = useNearbyDonations();
 
   const pending = [...(offers.data?.items ?? [])]
     .filter((o) => new Date(o.expires_at).getTime() > Date.now() - 60_000)
@@ -146,6 +149,26 @@ export default function ReceiverDashboard() {
           <div className="space-y-4">
             {pending.map((o) => (
               <OfferCard key={o.id} offer={o} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Food available near you">
+        {nearby.isLoading ? (
+          <CardSkeleton />
+        ) : nearby.isError ? (
+          <ErrorState error={nearby.error} onRetry={() => void nearby.refetch()} />
+        ) : (nearby.data?.items.length ?? 0) === 0 ? (
+          <EmptyState
+            icon={<MapPin size={22} />}
+            title="Nothing nearby right now"
+            body="Newly posted food that fits your area, diet and hours will show up here."
+          />
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {nearby.data?.items.map((n) => (
+              <NearbyFoodCard key={n.donation_id} item={n} />
             ))}
           </div>
         )}

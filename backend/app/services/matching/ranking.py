@@ -62,4 +62,5 @@ def offer_timeout_minutes(effective_deadline: datetime, now: datetime, cfg: dict
 
 
 def batch_size(priority_level: str, cfg: dict[str, Any]) -> int:
-    return int(cfg["high_priority_batch_size"]) if priority_level == "HIGH" else 1
+    """Top-N Receivers notified per run, whatever the priority; the rest only see the donation on their dashboard."""
+    return int(cfg.get("offer_batch_size", 3))

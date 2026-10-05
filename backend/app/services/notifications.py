@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Notification, User
-from app.services import realtime
+from app.services import emailer, realtime
 
 TYPES = {
     "VERIFICATION_RESULT", "DONATION_FLAGGED", "DONATION_APPROVED", "DONATION_REJECTED", "OFFER_RECEIVED",
@@ -22,6 +22,10 @@ def notify(db: Session, user_id: uuid.UUID, type_: str, title: str, body: str, l
     assert type_ in TYPES, type_
     db.add(Notification(user_id=user_id, type=type_, title=title, body=body, link=link))
     realtime.ping_user(user_id)
+    if type_ in emailer.EMAIL_TYPES and emailer.email_enabled():
+        user = db.get(User, user_id)
+        if user is not None:
+            emailer.queue_email(db, user.email, f"FoodResQ: {title}", body, link)
 
 
 def notify_many(db: Session, user_ids: Iterable[uuid.UUID], type_: str, title: str, body: str,

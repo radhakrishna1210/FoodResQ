@@ -24,7 +24,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "min_rescue_window_minutes": 30,
     "offer_timeout_min_max": [5, 15],
     "offer_timeout_fraction": 0.10,
-    "high_priority_batch_size": 2,
+    # How many top-ranked Receivers get an offer (and an in-app + email notification) per match run.
+    "offer_batch_size": 3,
     "no_show_grace_minutes": 15,
     "feedback_window_hours": 24,
     "auto_complete_hours": 24,

@@ -102,7 +102,7 @@ const TIMING_KEYS: Array<{ key: keyof AppConfig; label: string; step?: number }>
   { key: 'avg_speed_kmph', label: 'Average speed (km/h)' },
   { key: 'road_factor', label: 'Road factor', step: 0.1 },
   { key: 'offer_timeout_fraction', label: 'Offer timeout fraction', step: 0.01 },
-  { key: 'high_priority_batch_size', label: 'HIGH priority batch size' },
+  { key: 'offer_batch_size', label: 'Receivers notified per match (top N)' },
 ];
 
 export default function AdminSettingsPage() {

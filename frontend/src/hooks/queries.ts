@@ -121,6 +121,13 @@ export function useSetNeeds() {
 export const useOffers = (params: { status?: OfferStatus; page?: number } = {}) =>
   useQuery({ queryKey: ['offers', params], queryFn: () => api.offers(params) });
 
+export const useNearbyDonations = () =>
+  useQuery({
+    queryKey: ['nearby-donations'],
+    queryFn: api.nearbyDonations,
+    refetchInterval: 30_000,
+  });
+
 export const useOffer = (id: string | undefined) =>
   useQuery({
     queryKey: ['offer', id],

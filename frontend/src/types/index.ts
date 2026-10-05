@@ -365,6 +365,23 @@ export interface Offer {
   allocation_id: UUID | null;
 }
 
+/** Read-only dashboard feed entry: open food this Receiver could take (only top-ranked Receivers get offers). */
+export interface NearbyDonation {
+  donation_id: UUID;
+  title: string;
+  food_category: FoodCategory;
+  diet_type: DietType;
+  remaining_servings: number;
+  priority_level: PriorityLevel;
+  effective_deadline: ISODateTime;
+  posted_at: ISODateTime;
+  donor_org_name: string | null;
+  distance_km: number;
+  eta_minutes: number;
+  offer_id: UUID | null;
+  offer_status: OfferStatus | null;
+}
+
 // ---- Matching (§7.6) ----
 export interface MatchCandidate {
   receiver_id: UUID;
@@ -621,7 +638,7 @@ export interface AppConfig {
   min_rescue_window_minutes: number;
   offer_timeout_min_max: [number, number];
   offer_timeout_fraction: number;
-  high_priority_batch_size: number;
+  offer_batch_size: number;
   no_show_grace_minutes: number;
   feedback_window_hours: number;
   auto_complete_hours: number;
