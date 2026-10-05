@@ -617,7 +617,7 @@ export interface AppConfig {
     refrigerated: number;
   };
   packaged_expiry_buffer_hours: number;
-  consumption_buffer_minutes: number;
+  post_pickup_consume_hours: number;
   min_rescue_window_minutes: number;
   offer_timeout_min_max: [number, number];
   offer_timeout_fraction: number;

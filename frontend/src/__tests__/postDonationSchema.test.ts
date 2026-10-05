@@ -62,7 +62,7 @@ describe('post-donation zod schema', () => {
       ...valid(),
       storage_condition: 'room_temp',
       ambient_above_32c: true,
-      prepared_at: '2026-10-04T19:54',
+      prepared_at: '2026-10-04T14:50',
       donor_pickup_by: '2026-10-04T21:30',
     });
     expect(r.success).toBe(false);

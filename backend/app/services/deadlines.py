@@ -36,9 +36,8 @@ def compute_deadlines(*, storage_condition: str, ambient_above_32c: bool, prepar
         safe = expiry_end - timedelta(hours=cfg["packaged_expiry_buffer_hours"])
         last_consumption = expiry_end
     else:
-        window = timedelta(hours=safe_window_hours(storage_condition, ambient_above_32c, cfg))
-        last_consumption = prepared_at + window
-        safe = last_consumption - timedelta(minutes=cfg["consumption_buffer_minutes"])
+        safe = prepared_at + timedelta(hours=safe_window_hours(storage_condition, ambient_above_32c, cfg))
+        last_consumption = safe + timedelta(hours=cfg["post_pickup_consume_hours"])
     return Deadlines(
         safe_pickup_deadline=safe,
         effective_deadline=min(donor_pickup_by, safe),

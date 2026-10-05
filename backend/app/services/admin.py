@@ -222,6 +222,15 @@ def put_config(db: Session, admin: User, values: dict[str, Any]) -> dict[str, An
     for k in WEIGHT_KEYS:
         if k in values:
             validate_weights(values[k])
+    if "safe_window_hours" in values:
+        w = values["safe_window_hours"]
+        if set(w) != set(DEFAULT_CONFIG["safe_window_hours"]) or any(
+            not isinstance(h, (int, float)) or h <= 0 for h in w.values()
+        ):
+            raise ValidationFailed("Pickup windows must be positive hours for every storage condition.")
+    for k in ("packaged_expiry_buffer_hours", "post_pickup_consume_hours"):
+        if k in values and (not isinstance(values[k], (int, float)) or values[k] < 0):
+            raise ValidationFailed(f"{k} must be zero or more.")
     for k, v in values.items():
         row = db.get(AppConfig, k)
         before = row.value if row else None

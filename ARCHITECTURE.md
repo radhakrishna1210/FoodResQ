@@ -525,17 +525,19 @@ All in `backend/app/services/validation.py` and `priority.py`. Constants come fr
 ### 6.2 Safe pickup deadline
 
 ```
-window = SAFE_WINDOW_HOURS[storage_condition]
-  hot_held:      4 h  from prepared_at
-  room_temp:     2 h  from prepared_at   (1 h if ambient_above_32c = true)
+window = PICKUP_WINDOW_HOURS[storage_condition]   (config key: safe_window_hours)
+  hot_held:      6 h  from prepared_at
+  room_temp:     6 h  from prepared_at   (also 6 h if ambient_above_32c = true)
   refrigerated: 12 h  from prepared_at
-  packaged_sealed: (packaged_expiry_date at 23:59 IST) − 12 h   ← not based on prepared_at
+  packaged_sealed: (packaged_expiry_date at 23:59 IST) − 18 h   ← not based on prepared_at
 
-safe_pickup_deadline = prepared_at + window − consumption_buffer_minutes (30)
-                       (for packaged_sealed: the expiry-based time above, no extra buffer)
+safe_pickup_deadline = prepared_at + window
+                       (for packaged_sealed: the expiry-based time above)
+last_consumption_at  = safe_pickup_deadline + post_pickup_consume_hours (4)
+                       (for packaged_sealed: expiry at 23:59 IST)
 effective_deadline   = min(donor_pickup_by, safe_pickup_deadline)
 ```
-The UI shows `effective_deadline` as **"Pickup by"** and `prepared_at + window` as **"Last time of consumption"** (FSSAI label field). These are conservative product defaults, not food-safety certification.
+Every item must stay edible for `post_pickup_consume_hours` after its pickup deadline. The UI shows `effective_deadline` as **"Pickup by"** and `last_consumption_at` as **"Last time of consumption"** (FSSAI label field). Admins edit all of these in Settings. These are conservative product defaults, not food-safety certification.
 
 ### 6.3 Auto-flag rules (saved as FLAGGED with `flag_reasons`)
 | Code | Condition |
@@ -1075,9 +1077,9 @@ Meals rescued · successful rescues · donations posted · % fully matched (`rem
 | `avg_speed_kmph` | `20` |
 | `prep_buffer_minutes` | `15` |
 | `search_radius_steps_km` | `[10, 15, 20]` |
-| `safe_window_hours` | `{"hot_held":4,"room_temp":2,"room_temp_hot_ambient":1,"refrigerated":12}` |
-| `packaged_expiry_buffer_hours` | `12` |
-| `consumption_buffer_minutes` | `30` |
+| `safe_window_hours` | `{"hot_held":6,"room_temp":6,"room_temp_hot_ambient":6,"refrigerated":12}` |
+| `packaged_expiry_buffer_hours` | `18` |
+| `post_pickup_consume_hours` | `4` |
 | `min_rescue_window_minutes` | `30` |
 | `offer_timeout_min_max` | `[5, 15]` |
 | `offer_timeout_fraction` | `0.10` |

@@ -5,9 +5,9 @@ import { IST } from './format';
 
 /** Defaults from app_config (§16). */
 export const DEADLINE_DEFAULTS = {
-  safe_window_hours: { hot_held: 4, room_temp: 2, room_temp_hot_ambient: 1, refrigerated: 12 },
-  packaged_expiry_buffer_hours: 12,
-  consumption_buffer_minutes: 30,
+  safe_window_hours: { hot_held: 6, room_temp: 6, room_temp_hot_ambient: 6, refrigerated: 12 },
+  packaged_expiry_buffer_hours: 18,
+  post_pickup_consume_hours: 4,
   min_rescue_window_minutes: 30,
 };
 export type DeadlineConfig = typeof DEADLINE_DEFAULTS;
@@ -21,11 +21,11 @@ export interface DeadlineInput {
 }
 
 export interface DeadlineResult {
-  /** prepared_at + window − buffer (or expiry-based for packaged) */
+  /** prepared_at + pickup window (or expiry − buffer for packaged) */
   safe_pickup_deadline: Date;
   /** min(donor_pickup_by, safe_pickup_deadline) — shown as "Pickup by" */
   effective_deadline: Date;
-  /** prepared_at + window (or expiry 23:59 IST for packaged) — "Last time of consumption" */
+  /** safe pickup + post-pickup hours (or expiry 23:59 IST for packaged) — "Last time of consumption" */
   last_consumption_at: Date;
   window_hours: number | null;
 }
@@ -74,8 +74,8 @@ export function computeDeadlines(
 
   if (Number.isNaN(prepared_at.getTime())) return null;
   const windowH = safeWindowHours(storage_condition, ambient_above_32c, cfg) as number;
-  const last = new Date(prepared_at.getTime() + windowH * H);
-  const safe = new Date(last.getTime() - cfg.consumption_buffer_minutes * M);
+  const safe = new Date(prepared_at.getTime() + windowH * H);
+  const last = new Date(safe.getTime() + cfg.post_pickup_consume_hours * H);
   return {
     safe_pickup_deadline: safe,
     effective_deadline: new Date(Math.min(donor_pickup_by.getTime(), safe.getTime())),

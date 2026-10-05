@@ -84,10 +84,17 @@ function WeightSet({
   );
 }
 
+const PICKUP_LABELS = {
+  hot_held: 'hot held',
+  room_temp: 'room temperature',
+  room_temp_hot_ambient: 'room temp, above 32°C',
+  refrigerated: 'refrigerated',
+} as const;
+
 const TIMING_KEYS: Array<{ key: keyof AppConfig; label: string; step?: number }> = [
-  { key: 'consumption_buffer_minutes', label: 'Consumption buffer (min)' },
+  { key: 'post_pickup_consume_hours', label: 'Must stay edible after pickup (h)', step: 0.5 },
   { key: 'min_rescue_window_minutes', label: 'Minimum rescue window (min)' },
-  { key: 'packaged_expiry_buffer_hours', label: 'Packaged expiry buffer (h)' },
+  { key: 'packaged_expiry_buffer_hours', label: 'Packaged: pickup before expiry (h)' },
   { key: 'no_show_grace_minutes', label: 'No-show grace (min)' },
   { key: 'feedback_window_hours', label: 'Feedback window (h)' },
   { key: 'auto_complete_hours', label: 'Auto-complete after (h)' },
@@ -180,7 +187,9 @@ export default function AdminSettingsPage() {
             {(['hot_held', 'room_temp', 'room_temp_hot_ambient', 'refrigerated'] as const).map(
               (k) => (
                 <label key={k} className="text-sm">
-                  <span className="font-medium text-ink">Safe window: {k} (h)</span>
+                  <span className="font-medium text-ink">
+                    Pickup window: {PICKUP_LABELS[k]} (h)
+                  </span>
                   <input
                     type="number"
                     step={0.5}

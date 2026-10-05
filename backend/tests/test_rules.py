@@ -46,19 +46,19 @@ def dl(storage, prepared, pickup, ambient=True, expiry=None):
 
 @pytest.mark.parametrize(
     "storage,ambient,hours",
-    [("hot_held", True, 4), ("room_temp", False, 2), ("room_temp", True, 1), ("refrigerated", True, 12)],
+    [("hot_held", True, 6), ("room_temp", False, 6), ("room_temp", True, 6), ("refrigerated", True, 12)],
 )
 def test_safe_window_per_storage(storage, ambient, hours):
     prepared = NOW - timedelta(minutes=10)
     d = dl(storage, prepared, NOW + timedelta(hours=48), ambient)
-    assert d.last_consumption_at == prepared + timedelta(hours=hours)
-    assert d.safe_pickup_deadline == prepared + timedelta(hours=hours, minutes=-30)
+    assert d.safe_pickup_deadline == prepared + timedelta(hours=hours)
+    assert d.last_consumption_at == d.safe_pickup_deadline + timedelta(hours=4)
     assert d.effective_deadline == d.safe_pickup_deadline
 
 
-def test_packaged_uses_expiry_minus_12h():
+def test_packaged_uses_expiry_minus_18h():
     d = dl("packaged_sealed", NOW, NOW + timedelta(hours=48), expiry=date(2026, 10, 6))
-    assert d.safe_pickup_deadline == datetime(2026, 10, 6, 11, 59, tzinfo=IST)
+    assert d.safe_pickup_deadline == datetime(2026, 10, 6, 5, 59, tzinfo=IST)
     assert d.effective_deadline == d.safe_pickup_deadline
 
 
@@ -86,7 +86,7 @@ def test_too_close_to_safe_limit_rejected():
         validate_donation(
             draft(
                 storage_condition="room_temp",
-                prepared_at=NOW - timedelta(minutes=40),
+                prepared_at=NOW - timedelta(hours=5, minutes=40),
                 donor_pickup_by=NOW + timedelta(hours=3),
             ),
             now=NOW,

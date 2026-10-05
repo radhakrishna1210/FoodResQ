@@ -15,9 +15,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "avg_speed_kmph": 20,
     "prep_buffer_minutes": 15,
     "search_radius_steps_km": [10, 15, 20],
-    "safe_window_hours": {"hot_held": 4, "room_temp": 2, "room_temp_hot_ambient": 1, "refrigerated": 12},
-    "packaged_expiry_buffer_hours": 12,
-    "consumption_buffer_minutes": 30,
+    # Hours after preparation within which the food must be picked up.
+    "safe_window_hours": {"hot_held": 6, "room_temp": 6, "room_temp_hot_ambient": 6, "refrigerated": 12},
+    # Packaged food must be picked up this many hours before its expiry.
+    "packaged_expiry_buffer_hours": 18,
+    # Every item must still be safe to eat this many hours after its pickup deadline.
+    "post_pickup_consume_hours": 4,
     "min_rescue_window_minutes": 30,
     "offer_timeout_min_max": [5, 15],
     "offer_timeout_fraction": 0.10,
