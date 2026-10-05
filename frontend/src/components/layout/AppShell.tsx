@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { ChevronDown, LogOut, Menu, Settings, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/cn';
+import { IMG } from '@/lib/media';
 import { Logo } from './Logo';
 import { NotificationBell } from './NotificationBell';
 import { ReconnectingPill } from './StatusPills';
@@ -141,13 +142,30 @@ export function AppShell({
           end={item.end}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              isActive ? a.active : 'text-slate-700 hover:bg-slate-50 hover:text-ink',
+              'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+              isActive
+                ? cn(a.active, 'shadow-sm')
+                : 'text-slate-700 hover:translate-x-0.5 hover:bg-slate-50 hover:text-ink',
             )
           }
         >
-          <item.icon size={18} aria-hidden />
-          {item.label}
+          {({ isActive }) => (
+            <>
+              <span
+                className={cn(
+                  'absolute inset-y-1.5 -left-3 w-1 rounded-r-full transition-all duration-300',
+                  isActive ? cn(a.dot, 'opacity-100') : 'opacity-0',
+                )}
+                aria-hidden="true"
+              />
+              <item.icon
+                size={18}
+                aria-hidden
+                className="transition-transform duration-200 group-hover:scale-110"
+              />
+              {item.label}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -162,7 +180,7 @@ export function AppShell({
         Skip to content
       </a>
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-white md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-gradient-to-b from-white to-bg md:flex">
         <div className="flex h-16 items-center px-5">
           <Logo to={home} />
         </div>
@@ -177,8 +195,22 @@ export function AppShell({
           </span>
         </div>
         <div className="flex-1 overflow-y-auto px-3">{navLinks}</div>
-        <div className="border-t border-line p-4 text-xs text-slate">
-          Team Bitebridge · CURIOUSPARC 2026
+        <div className="p-3">
+          <div className="relative overflow-hidden rounded-xl">
+            <img
+              src={IMG.handingPlate}
+              alt=""
+              loading="lazy"
+              className="h-28 w-full object-cover transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/80 to-ink/10" />
+            <p className="absolute inset-x-3 bottom-2.5 font-heading text-xs font-semibold leading-snug text-white">
+              Every meal rescued is a meal someone eats today.
+            </p>
+          </div>
+          <p className="mt-3 text-center text-[11px] text-slate">
+            Team Bitebridge · CURIOUSPARC 2026
+          </p>
         </div>
       </aside>
 
@@ -208,7 +240,7 @@ export function AppShell({
       )}
 
       <div className="md:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-line bg-white/90 px-4 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-line bg-white/80 px-4 backdrop-blur-xl md:px-8">
           <div className="flex items-center gap-2 md:hidden">
             {!hasBottomNav && (
               <button
@@ -228,7 +260,11 @@ export function AppShell({
             <UserMenu />
           </div>
         </header>
-        <main id="main" className="pb-safe mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">
+        <main
+          id="main"
+          key={location.pathname}
+          className="pb-safe mx-auto w-full max-w-6xl animate-fade-in px-4 py-6 md:px-8 md:py-8"
+        >
           {children ?? <Outlet />}
         </main>
       </div>

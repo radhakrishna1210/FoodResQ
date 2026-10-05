@@ -6,7 +6,8 @@ import { DonationCard } from '@/components/donation/DonationCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { CardSkeleton, Skeleton } from '@/components/ui/Spinner';
-import { PageHeader, Section, Stat } from '@/components/ui/misc';
+import { DashboardBanner } from '@/components/layout/DashboardBanner';
+import { Section, Stat } from '@/components/ui/misc';
 import { formatMinutes, formatNumber } from '@/lib/format';
 import { ACTIVE_DONATION_STATUSES } from '@/lib/labels';
 
@@ -55,12 +56,21 @@ export default function DonorDashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        icon={<Utensils size={20} />}
+      <DashboardBanner
+        icon={<Utensils size={22} />}
+        eyebrow="Donor dashboard"
         title={donorProfile?.org_name ?? 'Donor dashboard'}
         subtitle={`Hi ${user?.full_name?.split(' ')[0] ?? 'there'} — track your surplus food and rescues here.`}
+        tone="primary"
+        offset={0}
         actions={
-          <ButtonLink to="/donor/donations/new" size="lg" icon={<PlusCircle size={18} />}>
+          <ButtonLink
+            to="/donor/donations/new"
+            variant="secondary"
+            size="lg"
+            icon={<PlusCircle size={18} />}
+            className="border-transparent text-primary-700 shadow-lift hover:-translate-y-0.5 hover:bg-primary-50"
+          >
             Post surplus food
           </ButtonLink>
         }
