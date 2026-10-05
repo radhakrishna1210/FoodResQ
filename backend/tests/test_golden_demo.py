@@ -26,10 +26,14 @@ def _deadlines():
 
 
 def test_step2_deadlines():
+    # hot_held safe window is now 6h (was 4h) and the post-pickup consumption buffer (4h) is added
+    # after the safe deadline rather than subtracted before it (0003_pickup_windows). The donor's own
+    # pickup_by (10:30 PM) is still earlier than the new, later safe deadline (1:00 AM), so it's still
+    # the one that binds — effective_deadline is unchanged.
     d = _deadlines()
-    assert to_ist(d.safe_pickup_deadline).strftime("%H:%M") == "22:30"
+    assert to_ist(d.safe_pickup_deadline).strftime("%H:%M") == "01:00"
     assert to_ist(d.effective_deadline).strftime("%H:%M") == "22:30"
-    assert to_ist(d.last_consumption_at).strftime("%H:%M") == "23:00"
+    assert to_ist(d.last_consumption_at).strftime("%H:%M") == "05:00"
     assert d.effective_deadline - PREPARED_AT == timedelta(hours=3, minutes=30)
 
 

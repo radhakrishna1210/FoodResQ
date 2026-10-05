@@ -78,7 +78,7 @@ Creates 5 past COMPLETED donations from College A to Receiver A and B (total 410
 Creates the golden-demo donation **relative to the current time** so the numbers in §3 hold at any time of day:
 - `prepared_at = now − 94 min`
 - `donor_pickup_by = now + 116 min`
-- `storage_condition = hot_held`, so `safe_pickup_deadline = prepared_at + 4 h − 30 min = now + 116 min`
+- `storage_condition = hot_held`, so `safe_pickup_deadline = prepared_at + 6 h = now + 266 min`; `donor_pickup_by` (now + 116 min) is earlier, so it still binds — `effective_deadline = now + 116 min`
 For the live demo, prefer posting through the UI with these values (§3.2).
 
 ---
@@ -111,9 +111,9 @@ College A logs in and fills the form:
 
 ### 3.3 Step 2 — Validate (server)
 - All hard rules pass (ARCHITECTURE §6.1).
-- `safe_pickup_deadline` = 7:00 PM + 4 h − 30 min = **10:30 PM**.
-- `effective_deadline` = min(10:30 PM, 10:30 PM) = **10:30 PM**.
-- "Last time of consumption" on the label = 7:00 PM + 4 h = **11:00 PM**.
+- `safe_pickup_deadline` = 7:00 PM + 6 h = **1:00 AM**.
+- `effective_deadline` = min(10:30 PM, 1:00 AM) = **10:30 PM**.
+- "Last time of consumption" on the label = 1:00 AM + 4 h = **5:00 AM**.
 - Auto-flags: none (photo present, 120 ≤ 200, Donor verified, no open reports) → status **POSTED**.
 
 ### 3.4 Step 3 — Prioritise
@@ -299,7 +299,7 @@ POSTED slate · MATCHED teal · ACCEPTED primary · COLLECTED purple · COMPLETE
 ### 5.4 Post donation `/donor/donations/new`
 One page, three sections:
 1. **Food:** food name, category, diet (Veg / Egg / Non-veg with green, yellow, red dots), servings, optional kg, allergens, description.
-2. **Timing and storage:** prepared at (datetime), storage (Kept hot / Room temperature / Refrigerated / Sealed packaged), "Is it above 32 °C where the food is kept?" (shown for room temperature, default Yes), packaged expiry date (packaged only), pickup by (datetime). Live preview box: **"Pickup by: 10:30 PM · Last time of consumption: 11:00 PM"** computed with the same rules as the server (server remains the authority).
+2. **Timing and storage:** prepared at (datetime), storage (Kept hot / Room temperature / Refrigerated / Sealed packaged), "Is it above 32 °C where the food is kept?" (shown for room temperature, default Yes), packaged expiry date (packaged only), pickup by (datetime). Live preview box: **"Pickup by: 10:30 PM · Last time of consumption: 5:00 AM"** computed with the same rules as the server (server remains the authority).
 3. **Pickup and safety:** address/map pin (prefilled), instructions, contact phone, photo upload (recommended; note "Posts without a photo need a quick review before matching"), the 5-item checklist, and the declaration.
 
 **Checklist copy (exact):**
