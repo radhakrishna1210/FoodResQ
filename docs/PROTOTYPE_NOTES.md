@@ -13,7 +13,7 @@ This file tracks the state of the prototype skeleton. The three source-of-truth 
 | Auth: Supabase JWT verify (HS256 secret or JWKS), role from DB, `require_role` / `require_active`, onboarding | Done |
 | State machines (§5) as explicit tables in `services/state.py`; every change audited | Done + exhaustive tests |
 | Validation, safe deadline, auto-flags, priority (§6) | Done + tests for every storage condition / flag |
-| JEV engine (§7): geo, hard filters, 8 factors, weights, reasons, match runs, offers, cascade, radius widening, no-match alert | Done — **golden test passes (A = 91, B = 52, C excluded, HIGH 0.719, timeout 11)** |
+| Bridge engine (§7): geo, hard filters, 8 factors, weights, reasons, match runs, offers, cascade, radius widening, no-match alert | Done — **golden test passes (A = 91, B = 52, C excluded, HIGH 0.719, timeout 11)** |
 | Concurrency-safe accept (§7.9), split allocation, supersede | Done + threaded test on real Postgres |
 | Handover code (5-attempt lock), Admin override, distribution, auto-complete, no-show, Receiver cancel + re-match | Done |
 | Jobs: `tick()` (APScheduler 60 s + `POST /internal/tick`), lazy checks, idempotent | Done + test |
@@ -63,7 +63,7 @@ Tests: `cd backend && pytest` (pure tests). Full suite incl. API flows:
 | Supabase JWT secret (or JWKS URL) | `backend/.env` `SUPABASE_JWT_SECRET` / `SUPABASE_JWKS_URL` |
 | Supabase Postgres connection string | `backend/.env` `DATABASE_URL` (`postgresql+psycopg://…`) |
 | Storage buckets `donation-photos`, `verification-docs`, `feedback-photos` (all private) | Supabase dashboard |
-| Anthropic API key + model id (Phase 6) | `backend/.env` `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
+| Gemini API key + model id (Phase 6), from Google AI Studio | `backend/.env` `GEMINI_API_KEY`, `GEMINI_MODEL` |
 | `INTERNAL_TICK_SECRET` + external cron (cron-job.org) | Render env + cron config |
 | Render + Vercel accounts | deployment (ARCHITECTURE §18) |
 
@@ -84,4 +84,3 @@ No Google Maps / Google Earth key is required: maps are OpenStreetMap + Leaflet 
    `match_runs.trigger` for this, so `declined` is used. Suggest adding `partially_accepted`.
 3. Admin manual assignment notifies both parties with `OFFER_ACCEPTED` (no dedicated type in §8.1).
 4. `POST /admin/admins` creates the `users` row for an existing Supabase Auth user id; creating the Auth user itself via the Supabase admin API is a follow-up.
-5. "JEV" acronym expansion (README D5).

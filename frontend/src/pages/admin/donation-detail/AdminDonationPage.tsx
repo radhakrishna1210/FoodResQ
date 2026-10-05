@@ -123,7 +123,7 @@ function AssignForm({ d }: { d: AdminDonationDetail }) {
       <CardHeader
         icon={<UserPlus size={18} className="text-purple" />}
         title="Manual assign"
-        subtitle="Bypasses JEV filters except verification. A note is required."
+        subtitle="Bypasses Bridge filters except verification. A note is required."
       />
       <CardBody className="space-y-3">
         <Field
@@ -345,7 +345,7 @@ export default function AdminDonationPage() {
 
       <section className="space-y-4">
         <h2 className="font-heading text-lg font-semibold text-ink">
-          JEV match runs ({d.match_runs?.length ?? 0})
+          Bridge match runs ({d.match_runs?.length ?? 0})
         </h2>
         {(d.match_runs ?? []).length === 0 ? (
           <p className="text-sm text-slate">No match runs yet.</p>

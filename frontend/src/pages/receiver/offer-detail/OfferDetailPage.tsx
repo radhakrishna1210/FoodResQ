@@ -175,7 +175,7 @@ export default function OfferDetailPage() {
               {offer.match_score}%
             </p>
             <p className="text-xs font-medium uppercase tracking-wide text-slate">
-              JEV match score
+              Match score
             </p>
           </div>
         </div>

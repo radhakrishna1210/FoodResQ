@@ -130,7 +130,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
             {offer.match_score}%
           </p>
           <p className="text-center text-[11px] font-medium uppercase tracking-wide text-slate">
-            JEV match
+            Match score
           </p>
           {offer.rank === 1 && (
             <span className="mt-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">

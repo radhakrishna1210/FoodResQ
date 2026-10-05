@@ -31,6 +31,7 @@ function RootLayout() {
 const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
 const LoginPage = lazy(() => import('@/pages/login/LoginPage'));
 const SignupPage = lazy(() => import('@/pages/signup/SignupPage'));
+const GoogleCallbackPage = lazy(() => import('@/pages/auth/GoogleCallbackPage'));
 const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage'));
 const PendingPage = lazy(() => import('@/pages/pending/PendingPage'));
 const DonorDashboard = lazy(() => import('@/pages/donor/dashboard/DonorDashboard'));
@@ -146,6 +147,7 @@ export const routes: RouteObject[] = [
         children: [
           { path: '/login', element: page(<LoginPage />) },
           { path: '/signup', element: page(<SignupPage />) },
+          { path: '/auth/callback', element: page(<GoogleCallbackPage />) },
         ],
       },
     ],

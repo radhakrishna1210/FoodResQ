@@ -52,7 +52,7 @@ TOOL_DEFS: dict[str, dict[str, Any]] = {
     },
     "get_match_explanation": {
         "roles": {"donor"},
-        "description": "Latest JEV match run for a donation: top scores and reasons.",
+        "description": "Latest Bridge match run for a donation: top scores and reasons.",
         "input_schema": _obj({"donation_id": {"type": "string"}}, ["donation_id"]),
     },
     "list_my_offers": {
@@ -99,12 +99,29 @@ TOOL_DEFS: dict[str, dict[str, Any]] = {
 }
 
 
-def tools_for_role(role: str) -> list[dict[str, Any]]:
-    return [
-        {"name": n, "description": d["description"], "input_schema": d["input_schema"]}
+_SCHEMA_KEYS = ("type", "description", "properties", "required", "enum", "items")
+
+
+def _to_gemini_schema(schema: dict) -> dict:
+    """Gemini's FunctionDeclaration.parameters is a trimmed-down JSON Schema (no additionalProperties)."""
+    out = {k: v for k, v in schema.items() if k in _SCHEMA_KEYS}
+    if "properties" in out:
+        out["properties"] = {k: _to_gemini_schema(v) for k, v in out["properties"].items()}
+    if "items" in out:
+        out["items"] = _to_gemini_schema(out["items"])
+    return out
+
+
+def gemini_tools_for_role(role: str) -> list[Any]:
+    from google.genai import types
+
+    declarations = [
+        types.FunctionDeclaration(name=n, description=d["description"],
+                                   parameters=_to_gemini_schema(d["input_schema"]))
         for n, d in TOOL_DEFS.items()
         if role in d["roles"]
     ]
+    return [types.Tool(function_declarations=declarations)]
 
 
 def _uuid(v: Any) -> uuid.UUID:

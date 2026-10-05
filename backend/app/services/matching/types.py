@@ -1,4 +1,4 @@
-"""Plain data passed into the pure JEV engine (no DB access inside scoring)."""
+"""Plain data passed into the pure Bridge engine (no DB access inside scoring)."""
 
 import uuid
 from dataclasses import dataclass, field

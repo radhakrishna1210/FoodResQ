@@ -1,10 +1,16 @@
-// Realtime (ARCHITECTURE §8.2). Supabase postgres_changes when a client exists; otherwise 15 s polling.
-// Realtime payloads are never trusted: every event only invalidates React Query caches.
+// Realtime (ARCHITECTURE §8.2) via Supabase Realtime Broadcast, pushed by our own backend
+// (services/realtime.py) whenever something notification-worthy happens.
+//
+// We don't use Supabase Auth (README D6), so the browser's Supabase client has no session and
+// connects as the `anon` role — the RLS-gated `postgres_changes` feature would silently deliver
+// nothing to a connection like that (worse: it can report "connected" while receiving zero events,
+// which would wrongly turn off the polling fallback). Broadcast sidesteps RLS/auth entirely: we
+// subscribe to our own per-user channel, and on any ping — the payload is never trusted — just
+// invalidate every query key and let the normal authenticated REST calls refetch the real data.
 import { useEffect, useSyncExternalStore } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
-import type { UserRole } from '@/types';
 
 export type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'polling';
 
@@ -29,30 +35,26 @@ export function useRealtimeStatus(): RealtimeStatus {
 
 export const POLL_INTERVAL_MS = 15_000;
 
-/** Query key prefixes refreshed per table. */
-const TABLE_KEYS: Record<string, string[][]> = {
-  notifications: [['notifications']],
-  messages: [['messages']],
-  donations: [['donations'], ['donation'], ['impact']],
-  offers: [['offers'], ['offer']],
-  allocations: [['allocations'], ['allocation'], ['donation'], ['impact']],
-};
-
-export function invalidateForTable(qc: QueryClient, table: string): void {
-  for (const key of TABLE_KEYS[table] ?? []) void qc.invalidateQueries({ queryKey: key });
-  void qc.invalidateQueries({ queryKey: ['admin'] });
-}
+const QUERY_PREFIXES = [
+  ['notifications'],
+  ['messages'],
+  ['donations'],
+  ['donation'],
+  ['offers'],
+  ['offer'],
+  ['allocations'],
+  ['allocation'],
+  ['impact'],
+  ['admin'],
+  ['me'],
+];
 
 function invalidateAll(qc: QueryClient): void {
-  Object.keys(TABLE_KEYS).forEach((t) => invalidateForTable(qc, t));
+  for (const key of QUERY_PREFIXES) void qc.invalidateQueries({ queryKey: key });
 }
 
-/**
- * Subscribe while a user is signed in. Mount once (in the app shell).
- * TODO(team): Supabase Realtime uses the Supabase session; in dev-auth mode there is no Supabase session,
- * so we poll.
- */
-export function useRealtimeSync(userId: string | null, role: UserRole | null): void {
+/** Subscribe while a user is signed in. Mount once (in the app shell). */
+export function useRealtimeSync(userId: string | null): void {
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -82,21 +84,10 @@ export function useRealtimeSync(userId: string | null, role: UserRole | null): v
 
     setStatus('connecting');
     const client = supabase;
-    const tables =
-      role === 'receiver'
-        ? ['notifications', 'messages', 'offers', 'allocations']
-        : role === 'donor'
-          ? ['notifications', 'messages', 'donations', 'allocations']
-          : ['notifications'];
+    const channel = client
+      .channel(`user:${userId}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'change' }, () => invalidateAll(qc));
 
-    let channel = client.channel(`foodresq-${userId}`);
-    for (const table of tables) {
-      channel = channel.on(
-        'postgres_changes' as never,
-        { event: '*', schema: 'public', table } as never,
-        () => invalidateForTable(qc, table),
-      );
-    }
     channel.subscribe((status: string) => {
       if (status === 'SUBSCRIBED') {
         setStatus('connected');
@@ -113,5 +104,5 @@ export function useRealtimeSync(userId: string | null, role: UserRole | null): v
       void client.removeChannel(channel);
       setStatus('idle');
     };
-  }, [qc, userId, role]);
+  }, [qc, userId]);
 }

@@ -14,6 +14,10 @@ export const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').
  */
 export const DEV_AUTH = !SUPABASE_URL || import.meta.env.VITE_DEV_AUTH === 'true';
 
+/** Google Sign-In (direct OAuth via the backend, no Supabase). */
+export const GOOGLE_LOGIN_ENABLED = import.meta.env.VITE_GOOGLE_LOGIN_ENABLED === 'true';
+export const GOOGLE_LOGIN_URL = `${API_BASE_URL}/auth/google/login`;
+
 export const DEMO_ACCOUNTS: Array<{ email: string; label: string; role: string }> = [
   { email: 'admin@foodresq.demo', label: 'FoodResQ Admin', role: 'admin' },
   { email: 'college.a@foodresq.demo', label: 'College A (Demo)', role: 'donor' },

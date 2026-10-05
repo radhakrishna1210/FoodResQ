@@ -49,7 +49,7 @@ export function MatchingPanel({ donation }: { donation: DonationDetail }) {
         )}
         {!flagged && (
           <p className="mt-0.5 text-sm text-slate">
-            {progress ?? 'The JEV engine ranks verified Receivers by fit, not just distance.'}
+            {progress ?? 'Our engine ranks verified Receivers by fit, not just distance.'}
             {donation.search_radius_km > 10 &&
               ` Search radius widened to ${donation.search_radius_km} km.`}
           </p>

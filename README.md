@@ -4,14 +4,14 @@
 > Team **Bitebridge** · CURIOUSPARC 2026 · State Innovation Challenge
 > Domain: Food Waste Reduction · Social Impact · AI Decision Support
 
-FoodResQ is an end-to-end food-rescue platform. A **Donor** posts surplus edible food. The **JEV decision engine** ranks the best-fit verified **Receiver** (not just the nearest). The Receiver collects the food **directly from the Donor**. Every rescue is confirmed by both sides with a handover code, so impact is **measured, not estimated**.
+FoodResQ is an end-to-end food-rescue platform. A **Donor** posts surplus edible food. The **Bridge decision engine** ranks the best-fit verified **Receiver** (not just the nearest). The Receiver collects the food **directly from the Donor**. Every rescue is confirmed by both sides with a handover code, so impact is **measured, not estimated**.
 
 This repository has three source-of-truth documents. Read all three before writing any code:
 
 | File | What it answers |
 |---|---|
 | `README.md` (this file) | What we are building, scope, decisions, non-negotiable rules, setup |
-| `ARCHITECTURE.md` | How it is built: stack, database schema, state machines, JEV formulas, API, security, jobs |
+| `ARCHITECTURE.md` | How it is built: stack, database schema, state machines, Bridge formulas, API, security, jobs |
 | `WALKTHROUGH.md` | How it behaves end to end: demo script with exact numbers, every screen, build phases with acceptance criteria, test checklist |
 
 If these documents disagree with each other, **stop and ask the team**. Do not guess. If code disagrees with these documents, the documents win until the team updates them.
@@ -40,7 +40,7 @@ Surplus food is not wasted for lack of kindness. It is wasted for lack of fast, 
 
 ## 2. The solution in one paragraph
 
-A Donor fills **one form** (food, quantity, preparation time, storage, pickup deadline, location, safety checklist, photo). FoodResQ **validates** it, computes a **safe pickup deadline** and a **priority level**, then the **JEV engine** filters out Receivers who cannot take the food in time and scores the rest on **8 factors**. The top Receiver(s) get an **offer** with a match score and plain-language reasons. If they decline or do not respond in time, the offer **cascades** to the next-best Receiver. The accepting Receiver travels to the Donor, shows a **4-digit handover code**, and the Donor enters it to confirm collection. The Receiver then confirms distribution, both sides leave **feedback**, and the rescue is recorded as impact along with an **FSSAI-style surplus food record**.
+A Donor fills **one form** (food, quantity, preparation time, storage, pickup deadline, location, safety checklist, photo). FoodResQ **validates** it, computes a **safe pickup deadline** and a **priority level**, then the **Bridge engine** filters out Receivers who cannot take the food in time and scores the rest on **8 factors**. The top Receiver(s) get an **offer** with a match score and plain-language reasons. If they decline or do not respond in time, the offer **cascades** to the next-best Receiver. The accepting Receiver travels to the Donor, shows a **4-digit handover code**, and the Donor enters it to confirm collection. The Receiver then confirms distribution, both sides leave **feedback**, and the rescue is recorded as impact along with an **FSSAI-style surplus food record**.
 
 ### The seven-step workflow (from the pitch, slide 3)
 
@@ -49,7 +49,7 @@ A Donor fills **one form** (food, quantity, preparation time, storage, pickup de
 | 1 | **Post** | Donor adds food, quantity, deadline, location |
 | 2 | **Validate** | Fields, timing and safety checklist are checked; risky posts are FLAGGED for Admin |
 | 3 | **Prioritise** | Urgency × quantity × perishability gives HIGH / MEDIUM / LOW |
-| 4 | **JEV Match** | Hard filters, then 8-factor weighted score; ranked Receivers with reasons |
+| 4 | **Bridge Match** | Hard filters, then 8-factor weighted score; ranked Receivers with reasons |
 | 5 | **Accept** | Receiver accepts; else next-best (timeouts and declines cascade automatically) |
 | 6 | **Collect** | Receiver picks up from Donor; handover code confirms it |
 | 7 | **Impact** | Receiver confirms distribution; feedback; impact and FSSAI record stored |
@@ -62,7 +62,7 @@ A Donor fills **one form** (food, quantity, preparation time, storage, pickup de
 |---|---|---|
 | **Donor** | Restaurants, hotels, colleges and hostels, caterers and event organisers, other food businesses | Post surplus, track status live, enter handover code, chat with matched Receiver, give feedback, view history and impact, download records |
 | **Receiver** | NGOs, shelters, community organisations, food distributors | Maintain profile (capacity, diet, food categories, service area, hours, availability), receive and accept/decline offers, collect food, confirm distribution, chat, give feedback, view history |
-| **Admin** | FoodResQ platform team | Verify Receivers (and optionally badge Donors), review FLAGGED donations, resolve safety reports and disputes, manually assign a Receiver, view live map and analytics, tune JEV weights |
+| **Admin** | FoodResQ platform team | Verify Receivers (and optionally badge Donors), review FLAGGED donations, resolve safety reports and disputes, manually assign a Receiver, view live map and analytics, tune Bridge weights |
 
 Rules:
 
@@ -80,7 +80,7 @@ Rules:
 ### 4.1 MVP — must be built (in this order; see WALKTHROUGH.md §4 for phases)
 
 **Accounts and trust**
-- Email and password signup/login (Supabase Auth), role selection, role-specific onboarding profile.
+- Google Sign-In (direct OAuth 2.0 against our own backend, no Supabase Auth), role selection, role-specific onboarding profile.
 - Receiver verification queue for Admin (FSSAI registration number required; optional NGO Darpan ID; verification document upload).
 - Account statuses: active, pending_verification, rejected, suspended.
 
@@ -91,7 +91,7 @@ Rules:
 - Server-side validation and auto-flag rules.
 - Donor can cancel with a reason before collection.
 
-**JEV matching**
+**Bridge matching**
 - Priority scoring (HIGH / MEDIUM / LOW).
 - Two-stage matching: hard filters, then 8-factor weighted score (0–100) with reasons.
 - Explainability: every evaluated Receiver, including excluded ones with the exclusion reason, is stored in `match_runs`.
@@ -116,7 +116,7 @@ Rules:
 - Reliability score (Receivers) and quality score (Donors) recomputed from history.
 
 **Admin**
-- Verification queue, flagged donations queue, safety reports, disputes, manual assignment, live map, analytics, audit log, JEV weight settings.
+- Verification queue, flagged donations queue, safety reports, disputes, manual assignment, live map, analytics, audit log, Bridge weight settings.
 
 **Impact and records**
 - Donor and Receiver history; impact stats (meals rescued, successful rescues, average time to acceptance).
@@ -160,15 +160,16 @@ Items marked **Default** were chosen by the documentation author because the tea
 | D2 | Feedback after rescue | Two-way, MVP | **Final** |
 | D3 | AI chat assistant | Yes, last MVP phase, limited tools | **Final** (phase placement is Default) |
 | D4 | Donor ↔ Receiver chat | Plain per-allocation messaging, MVP | Default |
-| D5 | What "JEV" means | Name of the FoodResQ decision engine. v1 is a deterministic, rule-based weighted-scoring model. **No machine learning in v1.** | Default (team to supply the expansion of the acronym) |
-| D6 | Auth | Supabase Auth (email + password); FastAPI verifies the Supabase JWT | Default |
+| D5 | What "Bridge" means | Name of the FoodResQ decision engine — plain English, not an acronym (it bridges Donors to the right Receiver). v1 is a deterministic, rule-based weighted-scoring model. **No machine learning in v1.** Formerly called "JEV"; renamed after that name was found to collide with an unrelated third-party AI product. | **Final** |
+| D6 | Auth | Google Sign-In only — direct OAuth 2.0 authorization-code flow against our own FastAPI backend (no Supabase Auth, no password login). The backend verifies Google's token itself, resolves the account by email (same id scheme as `scripts/seed.py` and the prototype dev-login, so a Google login always lands on the same account), and mints its own session JWT. Considered Supabase Auth (email+password) and decided against building password login at all — see the "why not SMTP/custom auth" discussion; Google already carries the security weight. | **Final** |
 | D7 | Maps and distance | OpenStreetMap tiles + Leaflet (`react-leaflet`); Haversine × 1.3 road factor; assumed 20 km/h city speed | Default |
-| D8 | Notifications | In-app realtime only in the MVP; email in Phase 2 | Default |
+| D8 | Notifications | In-app realtime only in the MVP; email in Phase 2. Implemented via Supabase Realtime **Broadcast** (not `postgres_changes`/RLS) — pushed by the backend on a per-user channel whenever `services/notifications.py.notify()` runs, since there's no Supabase Auth session (D6) for RLS to key off. 15 s polling remains the fallback if the channel drops. | Default (implementation detail Final) |
 | D9 | Household donors | Not allowed in the MVP | Default |
-| D10 | Business writes | All writes go through FastAPI. The frontend uses Supabase only for auth, file uploads via signed URL, and realtime subscriptions | Default |
+| D10 | Business writes | All writes go through FastAPI. The frontend uses Supabase only for file uploads via signed URL and realtime subscriptions (not auth — see D6) | Default |
 | D11 | Background jobs | APScheduler inside FastAPI **plus** an idempotent `POST /internal/tick` endpoint pinged every minute by an external cron (Render free tier sleeps) | Default |
 | D12 | Time | Store all timestamps in UTC (`timestamptz`); display in IST (`Asia/Kolkata`) | Default |
 | D13 | Quantity unit | Everything is measured in **servings** (one serving = one meal for one person). Optional `quantity_kg` is informational only | Default |
+| D14 | Matching engine (Stage-2 scorer) | `MATCHING_ENGINE` env var selects between `bridge` (default — this project's own deterministic weighted formula, the only engine the test suite assumes) and `jev` (TypeSafe AI's Jev API). Stage 1 hard filters and the factor measurements are never delegated either way — only the final 0-100 score is switchable, and any Jev failure falls back to Bridge for that candidate. Jev is early-access/no-SLA and this adapter (`services/matching/jev_adapter.py`) has not been verified against a real API key. | Experimental — not reviewed against a live Jev account |
 
 ---
 
@@ -179,11 +180,11 @@ Items marked **Default** were chosen by the documentation author because the tea
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS, React Router, TanStack Query, react-leaflet, Supabase JS client |
 | Backend | Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, psycopg 3, APScheduler |
 | Database | PostgreSQL on Supabase |
-| Auth | Supabase Auth |
+| Auth | Google Sign-In (direct OAuth 2.0, backend-verified; no Supabase Auth) |
 | File storage | Supabase Storage (`donation-photos` public-read via signed URL, `verification-docs` private, `feedback-photos` private) |
 | Realtime | Supabase Realtime (`notifications`, `messages`, `donations` changes) |
-| AI assistant | Anthropic Claude API, called **only from the backend** |
-| Hosting | Frontend on Vercel, backend on Render, database/auth/storage on Supabase (free or low-cost tiers) |
+| AI assistant | Google Gemini API (Google AI Studio), called **only from the backend** |
+| Hosting | Frontend on Vercel, backend on Render, database/storage/realtime on Supabase (free or low-cost tiers) |
 | Testing | pytest (backend), Vitest + React Testing Library (frontend) |
 
 ---
@@ -239,8 +240,8 @@ CORS_ORIGINS=http://localhost:5173
 APP_TIMEZONE=Asia/Kolkata
 SCHEDULER_ENABLED=true
 INTERNAL_TICK_SECRET=change-me
-ANTHROPIC_API_KEY=...                        # Phase 6 only
-ANTHROPIC_MODEL=...                          # set to a current model id from Anthropic docs; never hard-code
+GEMINI_API_KEY=...                           # Phase 6 only; from Google AI Studio (aistudio.google.com)
+GEMINI_MODEL=...                             # set to a current Gemini model id; never hard-code
 EMAIL_NOTIFICATIONS_ENABLED=false
 ```
 
@@ -258,11 +259,11 @@ VITE_SUPABASE_ANON_KEY=...
 1. **Follow these three documents exactly.** Names of tables, columns, enums, statuses, endpoints and routes must match ARCHITECTURE.md character for character.
 2. **Never invent features, roles, statuses, or endpoints.** If something seems missing, add a `TODO(team):` comment and ask; do not improvise.
 3. **Three roles only.** No volunteer, driver, or delivery role. The Receiver collects directly.
-4. **JEV v1 is rule-based.** Use the exact formulas and weights in ARCHITECTURE.md §7. Do not add ML libraries for matching.
+4. **Bridge v1 is rule-based.** Use the exact formulas and weights in ARCHITECTURE.md §7. Do not add ML libraries for matching.
 5. **All status changes go through the service layer** in `backend/app/services/` using the transition tables in ARCHITECTURE.md §5. Never update a `status` column directly from a router.
 6. **Every status change writes an `audit_log` row** and creates the notifications listed in ARCHITECTURE.md §8.
 7. **Never trust the client** for role, ownership, prices of anything, scores, deadlines or status. The server computes them.
-8. **Secrets stay on the server.** The service role key and Anthropic key must never appear in frontend code.
+8. **Secrets stay on the server.** The service role key and Gemini key must never appear in frontend code.
 9. **Times:** store UTC, compute in UTC, display IST.
 10. **Food safety wording:** the app supports a safer workflow; it never certifies food as safe. Use the copy in WALKTHROUGH.md §5.
 11. **Build phase by phase** (WALKTHROUGH.md §4). Do not start a phase until the previous phase's acceptance criteria pass.
@@ -298,6 +299,6 @@ Safe-window defaults are based on the widely used 2-hour rule for perishable foo
 | Suhani | Product lead and pitch |
 | Aaditi | Frontend (React + TypeScript) |
 | Shreeya | Backend and database (FastAPI) |
-| Radhakrishna | AI/ML (JEV matching engine, AI assistant) |
+| Radhakrishna | AI/ML (Bridge matching engine, AI assistant) |
 
 Contact: suhanimahalle11@gmail.com

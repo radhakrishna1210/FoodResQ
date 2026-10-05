@@ -7,7 +7,7 @@ import { router } from './router';
 
 function RealtimeBridge() {
   const { user } = useAuth();
-  useRealtimeSync(user?.id ?? null, user?.role ?? null);
+  useRealtimeSync(user?.id ?? null);
   return null;
 }
 

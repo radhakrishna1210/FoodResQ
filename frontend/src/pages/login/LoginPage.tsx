@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FlaskConical, HandHeart, LogIn, ShieldCheck, Utensils } from 'lucide-react';
+import { FlaskConical, HandHeart, ShieldCheck, Utensils } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { DEMO_ACCOUNTS, SUPABASE_URL } from '@/lib/env';
+import { DEMO_ACCOUNTS, GOOGLE_LOGIN_ENABLED, GOOGLE_LOGIN_URL } from '@/lib/env';
 import { Button } from '@/components/ui/Button';
-import { Field, Input } from '@/components/ui/Form';
+import { Input } from '@/components/ui/Form';
 import { InlineError } from '@/components/ui/ErrorState';
 import { cn } from '@/lib/cn';
 
@@ -117,64 +117,51 @@ function DemoAccounts() {
   );
 }
 
-function PasswordLogin() {
-  const { signInWithPassword } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await signInWithPassword(email.trim(), password);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-
+/** The only real login/signup method (README D6: Google Sign-In, direct OAuth, no Supabase/password auth). */
+export function GoogleLoginButton() {
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
-      <Field label="Email" htmlFor="email" required>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+    <a
+      href={GOOGLE_LOGIN_URL}
+      className={cn(
+        'flex w-full items-center justify-center gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 text-sm font-medium text-ink transition-colors',
+        'hover:border-primary/40 hover:bg-primary-50/40 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/15',
+      )}
+    >
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+        <path
+          fill="#4285F4"
+          d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
         />
-      </Field>
-      <Field label="Password" htmlFor="password" required>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+        <path
+          fill="#34A853"
+          d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.95v2.33A9 9 0 0 0 9 18Z"
         />
-      </Field>
-      <InlineError error={error} />
-      <Button type="submit" block size="lg" loading={busy} icon={<LogIn size={18} />}>
-        Log in
-      </Button>
-    </form>
+        <path
+          fill="#FBBC05"
+          d="M3.97 10.71A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.17.28-1.71V4.96H.95A9 9 0 0 0 0 9c0 1.45.35 2.83.95 4.04l3.02-2.33Z"
+        />
+        <path
+          fill="#EA4335"
+          d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .95 4.96l3.02 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+        />
+      </svg>
+      Continue with Google
+    </a>
   );
 }
 
 export default function LoginPage() {
   const { devMode } = useAuth();
-  const hasSupabase = Boolean(SUPABASE_URL);
   return (
     <AuthCard title="Welcome back" subtitle="Log in to post surplus food or collect it.">
       <div className="space-y-6">
-        {/* Dev auth replaces Supabase login entirely so api.ts sends a single, consistent token. */}
-        {devMode ? <DemoAccounts /> : hasSupabase ? <PasswordLogin /> : null}
+        {GOOGLE_LOGIN_ENABLED && <GoogleLoginButton />}
+        {GOOGLE_LOGIN_ENABLED && devMode && (
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate">
+            <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
+          </div>
+        )}
+        {devMode && <DemoAccounts />}
         <p className="text-center text-sm text-slate">
           New to FoodResQ?{' '}
           <Link to="/signup" className="link">

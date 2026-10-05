@@ -9,7 +9,7 @@ Contents
 4. Database schema
 5. State machines
 6. Validation, safe deadline, auto-flags, priority
-7. JEV matching engine
+7. Bridge matching engine
 8. Notifications and realtime
 9. Backend and frontend structure
 10. API reference
@@ -39,14 +39,14 @@ Contents
 │ Backend: FastAPI (Render)                                    │
 │  routers → services → repositories → PostgreSQL              │
 │  Services: auth/RBAC · donations · validation · priority ·   │
-│  JEV matching · offers · allocations · messaging ·           │
+│  Bridge matching · offers · allocations · messaging ·           │
 │  feedback · trust scores · notifications · records ·         │
 │  admin · assistant (Phase 6)                                 │
 │  Jobs: APScheduler (60 s) + POST /internal/tick (cron ping)  │
 └───────┬───────────────────┬───────────────────┬──────────────┘
         │                   │                   │
 ┌───────▼───────┐  ┌────────▼────────┐  ┌───────▼─────────────┐
-│ Supabase      │  │ Supabase        │  │ Anthropic API       │
+│ Supabase      │  │ Supabase        │  │ Gemini API          │
 │ PostgreSQL    │  │ Storage         │  │ (assistant only,    │
 │ Auth, Realtime│  │ photos & docs   │  │  server-side)       │
 └───────────────┘  └─────────────────┘  └─────────────────────┘
@@ -78,7 +78,7 @@ Map tiles: OpenStreetMap via Leaflet (frontend only)
 | Auth verify | `pyjwt[crypto]` | Verify Supabase JWT |
 | Jobs | `apscheduler` 3 | |
 | Supabase admin | `supabase` (python) | Storage signed URLs only |
-| AI | `anthropic` | Phase 6 only |
+| AI | `google-genai` | Phase 6 only |
 | Tests | `pytest`, `pytest-asyncio`, `httpx`; frontend `vitest`, `@testing-library/react` | |
 | Lint | `ruff` (Python), `eslint` + `prettier` (TS) | |
 
@@ -87,9 +87,9 @@ Map tiles: OpenStreetMap via Leaflet (frontend only)
 ## 3. Authentication and authorization
 
 ### 3.1 Flow
-1. User signs up or logs in on the frontend with Supabase Auth (email + password).
+1. User signs in with Google on the frontend (`GET /api/v1/auth/google/login` → Google consent screen → `GET /api/v1/auth/google/callback`). The backend verifies Google's ID token itself (JWKS), resolves the account by email (`uuid5(NAMESPACE_URL, "foodresq-demo:{email}")` for a new email — the same scheme `scripts/seed.py` and the prototype dev-login use, so any login method for the same address lands on one account), and mints its own session JWT (`iss=foodresq-google`, signed with `APP_JWT_SECRET`). No Supabase Auth, no password login (README D6).
 2. Frontend sends `Authorization: Bearer <access_token>` on every API call.
-3. FastAPI dependency `get_current_user` verifies the JWT (signature, expiry, audience `authenticated`) using `SUPABASE_JWT_SECRET` or `SUPABASE_JWKS_URL`, reads `sub` (the auth user id), and loads the row from `users`.
+3. FastAPI dependency `get_current_user` verifies the JWT (signature, expiry, audience `authenticated`). `decode_token` checks, in order: the dev-login issuer (`DEV_AUTH_ENABLED` only), the Google-login issuer (`APP_JWT_SECRET`, always available), then falls back to `SUPABASE_JWKS_URL` / `SUPABASE_JWT_SECRET` for a Supabase-issued token if one is ever presented. It reads `sub` (the account id) and loads the row from `users`.
 4. If no `users` row exists, only `POST /api/v1/onboarding` and `GET /api/v1/me` are allowed (`GET /me` returns `{ "onboarded": false }`).
 5. **The role is read from our `users` table, never from the token or the request body.**
 
@@ -563,9 +563,14 @@ Recomputed at every match run and stored on the donation.
 
 ---
 
-## 7. JEV matching engine
+## 7. Bridge matching engine
 
-"JEV" is the name of the FoodResQ decision engine. **v1 is deterministic and rule-based.** Code lives in `backend/app/services/matching/` as pure functions (no DB access inside scoring) so it can be unit-tested with fixtures.
+"Bridge" is the name of the FoodResQ decision engine. **v1 is deterministic and rule-based.** Code lives in `backend/app/services/matching/` as pure functions (no DB access inside scoring) so it can be unit-tested with fixtures.
+
+§7.3 (hard filters) and §7.4 (factor measurements) are never delegated to anything external. Only the
+final 0-100 score in §7.5 is switchable via `MATCHING_ENGINE` (README D14) to TypeSafe AI's Jev API
+instead of Bridge's own weighted formula — experimental, untested against a live Jev account, and
+falls back to Bridge per-candidate on any Jev error. Default and test-suite-assumed engine: `bridge`.
 
 ### 7.1 When matching runs
 - Donation becomes POSTED (trigger `posted` or `approved`).
@@ -734,11 +739,22 @@ This implements the pitch rule **"Double acceptance → first confirm locks it."
 `link` points to the relevant frontend route (§9.3).
 
 ### 8.2 Realtime
-Frontend subscribes with Supabase Realtime (`postgres_changes`, RLS-filtered):
-- `notifications` INSERT for the current user → toast + badge.
-- `messages` INSERT for open allocation pages.
-- `donations` UPDATE for the Donor's own donations; `offers` and `allocations` changes for the Receiver.
-On any event the frontend **invalidates React Query caches and re-fetches from the API**; it never trusts realtime payloads as the source of truth. Fallback: poll every 15 s if the realtime channel is disconnected.
+Implemented via Supabase Realtime **Broadcast**, not `postgres_changes`/RLS: since there is no
+Supabase Auth session in the browser (D6 — Google Sign-In, backend-verified, is the only login
+method), the browser's Supabase client connects as the `anon` role, which the RLS policies in §4.4
+don't apply to — `postgres_changes` would silently deliver nothing to it (and could falsely report
+"connected" while turning off the polling fallback). Instead:
+- `services/realtime.py` (service-role key, server-only) POSTs to
+  `{SUPABASE_URL}/realtime/v1/api/broadcast` on a per-user channel (`user:{user_id}`) whenever
+  `services/notifications.py.notify()` runs — which already covers every event in §8.1 — plus on
+  every chat message (`services/messaging.py.send_message()`), so chat doesn't wait on the
+  `NEW_MESSAGE` 2-minute throttle.
+- The frontend (`lib/realtime.ts`) subscribes to its own `user:{myUserId}` channel. The payload
+  carries nothing — on any event it just **invalidates every React Query cache and re-fetches from
+  the API**; it never trusts the broadcast as the source of truth, so a missed or duplicate ping is
+  harmless. Channel names are unguessable per-user UUIDs; no RLS/auth is applied to broadcast
+  channels, so nothing sensitive is ever put in the payload itself.
+- Fallback: poll every 15 s if the channel is disconnected.
 
 ---
 
@@ -826,7 +842,7 @@ frontend/src/
 | `/admin/disputes` | Disputes | admin |
 | `/admin/live` | Live map of active rescues | admin |
 | `/admin/analytics` | Metrics | admin |
-| `/admin/settings` | JEV weights + timing constants | admin |
+| `/admin/settings` | Bridge weights + timing constants | admin |
 | `/admin/donations/:id` | Donation detail with match runs | admin |
 | `/notifications` | Notification centre | authenticated |
 | `/settings` | Account settings | authenticated |
@@ -920,9 +936,9 @@ Base path `/api/v1`. JSON only. Auth header required unless marked public. Error
 **Build only after Phases 1–5 pass.** Available to Donors and active Receivers. Not to Admins in the MVP.
 
 ### 11.1 Flow
-Frontend chat panel → `POST /assistant/chat {conversation_id?, message}` → backend loads the last 20 messages of that conversation, calls the Anthropic Messages API with the system prompt and tools below, executes any tool calls **as the current user** (same services and permission checks), loops until a final text answer (max 4 tool rounds), stores messages, returns `{conversation_id, reply, draft?}`.
+Frontend chat panel → `POST /assistant/chat {conversation_id?, message}` → backend loads the last 20 messages of that conversation, calls the Google Gemini API with the system prompt and tools below, executes any tool calls **as the current user** (same services and permission checks), loops until a final text answer (max 4 tool rounds), stores messages, returns `{conversation_id, reply, draft?}`.
 
-- Model id from `ANTHROPIC_MODEL` env var. Never hard-code a model name.
+- Model id from `GEMINI_MODEL` env var. Never hard-code a model name.
 - Rate limit: 20 user messages per user per hour; message length ≤ 1000 chars.
 - If the API key is missing or the call fails, return a friendly fallback message; the rest of the app must keep working.
 

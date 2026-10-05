@@ -1,11 +1,13 @@
-"""Pure JEV run: evaluate every Receiver, rank included ones. No DB access."""
+"""Pure Bridge run: evaluate every Receiver, rank included ones. No DB access."""
 
 import math
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from app.config import get_settings
 from app.services.matching.filters import capacity_available, first_failure
 from app.services.matching.geo import eta_minutes, road_distance_km
+from app.services.matching.jev_adapter import score_via_jev
 from app.services.matching.reasons import build_reasons
 from app.services.matching.scoring import compute_factors, match_score, select_weights
 from app.services.matching.types import Candidate, DonationCtx, ReceiverCtx
@@ -33,7 +35,12 @@ def evaluate(d: DonationCtx, receivers: list[ReceiverCtx], *, now: datetime, tod
             continue
         cand.included = True
         cand.factors = compute_factors(d, r, distance_km=dist, arrival_at=arrival, now=now, today_ist=today_ist)
-        cand.match_score = match_score(cand.factors, weights)
+        bridge_score = match_score(cand.factors, weights)
+        if get_settings().matching_engine == "jev":
+            jev_score = score_via_jev(cand.factors, org_name=r.org_name, distance_km=dist, eta_minutes=eta)
+            cand.match_score = jev_score if jev_score is not None else bridge_score
+        else:
+            cand.match_score = bridge_score
         cand.reasons = build_reasons(factors=cand.factors, weights=weights, distance_km=dist, eta_minutes=eta,
                                      remaining=d.remaining_servings, capacity_available=cap,
                                      diet_type=d.diet_type)

@@ -17,6 +17,7 @@ from app.errors import Forbidden, Unauthorized
 from app.models import User
 
 DEV_ISSUER = "foodresq-dev"
+GOOGLE_ISSUER = "foodresq-google"
 
 
 @dataclass
@@ -38,6 +39,10 @@ def decode_token(token: str) -> dict:
         if s.dev_auth_enabled and unverified.get("iss") == DEV_ISSUER:
             # TODO(team): prototype-only path; disable DEV_AUTH_ENABLED before any pilot.
             return jwt.decode(token, s.dev_jwt_secret, algorithms=["HS256"], audience="authenticated")
+        if unverified.get("iss") == GOOGLE_ISSUER:
+            # Real, Google-verified session (routers/auth_google.py). Always available, not gated
+            # behind DEV_AUTH_ENABLED.
+            return jwt.decode(token, s.app_jwt_secret, algorithms=["HS256"], audience="authenticated")
         if s.supabase_jwks_url:
             key = _jwks_client(s.supabase_jwks_url).get_signing_key_from_jwt(token).key
             return jwt.decode(token, key, algorithms=["RS256", "ES256"], audience="authenticated")
@@ -57,6 +62,18 @@ def mint_dev_token(user_id: uuid.UUID, email: str, ttl_hours: int = 12) -> str:
     payload = {"sub": str(user_id), "email": email, "aud": "authenticated", "iss": DEV_ISSUER,
                "iat": int(now.timestamp()), "exp": int((now + timedelta(hours=ttl_hours)).timestamp())}
     return jwt.encode(payload, get_settings().dev_jwt_secret, algorithm="HS256")
+
+
+def mint_app_token(user_id: uuid.UUID, email: str, ttl_hours: int = 24 * 7) -> str:
+    """Session token for a real, Google-verified login (routers/auth_google.py)."""
+    from datetime import timedelta
+
+    from app.utils.time import now_utc
+
+    now = now_utc()
+    payload = {"sub": str(user_id), "email": email, "aud": "authenticated", "iss": GOOGLE_ISSUER,
+               "iat": int(now.timestamp()), "exp": int((now + timedelta(hours=ttl_hours)).timestamp())}
+    return jwt.encode(payload, get_settings().app_jwt_secret, algorithm="HS256")
 
 
 def get_auth(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> AuthContext:

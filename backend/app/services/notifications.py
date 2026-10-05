@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Notification, User
+from app.services import realtime
 
 TYPES = {
     "VERIFICATION_RESULT", "DONATION_FLAGGED", "DONATION_APPROVED", "DONATION_REJECTED", "OFFER_RECEIVED",
@@ -20,6 +21,7 @@ TYPES = {
 def notify(db: Session, user_id: uuid.UUID, type_: str, title: str, body: str, link: str | None = None) -> None:
     assert type_ in TYPES, type_
     db.add(Notification(user_id=user_id, type=type_, title=title, body=body, link=link))
+    realtime.ping_user(user_id)
 
 
 def notify_many(db: Session, user_ids: Iterable[uuid.UUID], type_: str, title: str, body: str,

@@ -131,7 +131,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         icon={<Settings size={20} className="text-purple" />}
-        title="JEV settings"
+        title="Bridge settings"
         subtitle="Weights and timing constants from app_config. Changes apply to future match runs only."
         actions={
           <Button

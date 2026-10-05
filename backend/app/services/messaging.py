@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.errors import Conflict, ValidationFailed
 from app.models import Message, Notification, User
 from app.services import notifications as notif
+from app.services import realtime
 from app.services.allocations import ensure_party, get_for_party
 from app.utils.time import now_utc
 
@@ -46,5 +47,9 @@ def send_message(db: Session, allocation_id: uuid.UUID, user: User, body: str) -
         Notification.created_at > now_utc() - timedelta(minutes=2)))).scalar()
     if not recent:
         notif.notify(db, other, "NEW_MESSAGE", "New message", body[:120], link)
+    else:
+        # notif.notify() already pings; this covers messages inside the 2-min notification throttle
+        # so the chat window itself still updates live rather than waiting on the rate limit.
+        realtime.ping_user(other)
     db.flush()
     return msg

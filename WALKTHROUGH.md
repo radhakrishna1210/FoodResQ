@@ -123,7 +123,7 @@ At 8:34 PM, time left = 116 min = 1.93 h.
 - perishability (cooked_meal) = **1.0**
 - priority_score = 0.5·0.678 + 0.3·0.600 + 0.2·1.0 = **0.719** → **HIGH**
 
-### 3.5 Step 4 — JEV Match
+### 3.5 Step 4 — Bridge Match
 Search radius 10 km. HIGH priority → HIGH weight set, batch size 2.
 
 | | Receiver A | Receiver B | Receiver C |
@@ -209,7 +209,7 @@ Acceptance:
 - [ ] Unticked checklist item → 422 with field error.
 - [ ] Unit tests cover every storage condition and every flag rule.
 
-### Phase 3 — JEV matching and offers
+### Phase 3 — Bridge matching and offers
 Tasks: `matching/` package (geo, filters, scoring, reasons, engine), match runs storage, offers with timeout and batch size, cascade on decline/timeout, radius widening, no-match alerts, `jobs.tick()` with APScheduler and `/internal/tick`, lazy checks, Receiver offers list and offer detail with Accept/Decline, Admin donation detail showing all match runs and exclusion reasons, Admin settings for weights.
 Acceptance:
 - [ ] **Golden test passes:** A = 91, B = 52, C excluded `category_not_accepted`, timeout 11 min, both A and B receive offers (A 120, B 50).
@@ -246,7 +246,7 @@ Acceptance:
 - [ ] "Accept this offer for me" → assistant refuses and explains how to accept manually.
 - [ ] "Is this food still safe?" → assistant does not judge; points to the safety checklist help article.
 - [ ] A user cannot read another user's data through the assistant (test with crafted ids).
-- [ ] With `ANTHROPIC_API_KEY` unset, the panel shows "Assistant is unavailable right now" and nothing else breaks.
+- [ ] With `GEMINI_API_KEY` unset, the panel shows "Assistant is unavailable right now" and nothing else breaks.
 
 ### Phase 7 — Polish and deploy
 Tasks: mobile layouts (360 px), loading/empty/error states for every page, accessibility pass, deploy to Vercel + Render + Supabase, external cron, demo rehearsal with `--reset`.
@@ -277,13 +277,13 @@ Acceptance:
 POSTED slate · MATCHED teal · ACCEPTED primary · COLLECTED purple · COMPLETED green · EXPIRED dark grey `#4A5160` · CANCELLED light grey `#9AA3AF` · FLAGGED gold. Offer labels: PENDING teal "Awaiting response", ACCEPTED green, DECLINED grey "Rejected", TIMED_OUT grey "No response", SUPERSEDED grey "Taken by another Receiver", WITHDRAWN grey "Withdrawn".
 
 **Typography:** headings Poppins (600), body Inter (400/500), fallback system sans. Base size 16 px.
-**Icons:** lucide-react (Utensils = Donor, HandHeart = Receiver, ShieldCheck = Admin, Brain = JEV, Clock = deadline).
+**Icons:** lucide-react (Utensils = Donor, HandHeart = Receiver, ShieldCheck = Admin, Brain = Bridge, Clock = deadline).
 **Countdown component:** shows "1 h 56 m left"; turns gold under 45 min, red under 15 min, "Deadline passed" when over. Used on every active donation, offer and pickup card.
 **Mobile-first:** single column under 768 px; bottom navigation bar for Donor and Receiver on mobile; sidebar on desktop.
 **Language:** plain, short, friendly. Never "Error 409": show the error `message` from the API.
 
 ### 5.2 Public pages
-- **Landing `/`:** hero line "Surplus food → the right Receiver → rescued in time.", three-step illustration (Donor posts → JEV matches → Receiver collects), live counters from `/impact/public` (meals rescued, rescues completed, verified Receivers), buttons "I have surplus food" (signup as Donor) and "We collect food" (signup as Receiver), SDG 2 and 12.3 badges, footer with team and partners.
+- **Landing `/`:** hero line "Surplus food → the right Receiver → rescued in time.", three-step illustration (Donor posts → Bridge matches → Receiver collects), live counters from `/impact/public` (meals rescued, rescues completed, verified Receivers), buttons "I have surplus food" (signup as Donor) and "We collect food" (signup as Receiver), SDG 2 and 12.3 badges, footer with team and partners.
 - **Login / Signup:** email, password; signup also has full name and phone. After signup → `/onboarding`.
 - **Onboarding:** step 1 choose role (two big cards: Donor / Receiver). Step 2 profile form:
   - Donor: org name, type, optional FSSAI licence no., address + map pin.
@@ -346,7 +346,7 @@ Star rating plus the role-specific yes/no questions (ARCHITECTURE §13.3), comme
 - **Safety reports / Disputes:** list → detail → resolve.
 - **Live map:** active donations (gold pins) and active pickups (teal pins) with countdowns.
 - **Analytics:** metric cards (ARCHITECTURE §14.3), line chart of meals rescued per day, bar chart by food category, date range picker.
-- **Settings:** JEV weights (two sets, live "sum = 1.00" check), timing constants from `app_config`.
+- **Settings:** Bridge weights (two sets, live "sum = 1.00" check), timing constants from `app_config`.
 
 ### 5.10 Shared UI
 - Notification bell with unread count; `/notifications` list with "Mark all read".
@@ -434,7 +434,7 @@ Star rating plus the role-specific yes/no questions (ARCHITECTURE §13.3), comme
 - [ ] `python -m scripts.seed --reset` on the deployed database.
 - [ ] External cron is pinging `/internal/tick`; backend is awake (open `/health` 2 minutes before).
 - [ ] Phone 1 logged in as College A, phone 2 as Receiver A, laptop as Admin on `/admin/live`.
-- [ ] Practise the script: post (§3.2) → show JEV ranking on Admin donation page → Receiver A accepts → show B superseded → handover code → confirm distribution → feedback → impact counter.
+- [ ] Practise the script: post (§3.2) → show Bridge ranking on Admin donation page → Receiver A accepts → show B superseded → handover code → confirm distribution → feedback → impact counter.
 - [ ] Backup: screen recording of the full flow in case of network issues.
 - [ ] Pitch deck slide 5 status and demo link/QR updated; slide 4 and 5 scores match the app (A = 91).
 
@@ -451,8 +451,8 @@ Star rating plus the role-specific yes/no questions (ARCHITECTURE §13.3), comme
 | **Serving** | One meal for one person; the single quantity unit |
 | **Offer** | A proposal to one Receiver to take some servings of a donation, with a timeout |
 | **Allocation** | Servings of a donation assigned to one Receiver after acceptance; one donation can have several |
-| **JEV** | The FoodResQ decision engine: hard filters + 8-factor weighted score + explanations |
-| **Match run** | One execution of JEV for a donation, storing every candidate evaluated |
+| **Bridge** | The FoodResQ decision engine: hard filters + 8-factor weighted score + explanations |
+| **Match run** | One execution of Bridge for a donation, storing every candidate evaluated |
 | **Effective deadline / Pickup by** | min(Donor's pickup-by time, safe pickup deadline) |
 | **Last time of consumption** | prepared_at + safe window (FSSAI label field) |
 | **Handover code** | 4-digit code shown to the Receiver and entered by the Donor to confirm collection |

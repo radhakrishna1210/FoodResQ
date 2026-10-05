@@ -19,3 +19,8 @@ Thumbs.db
 .idea/
 # Claude Code local state
 .claude/
+# Local PostgreSQL (portable binaries + data dir, dev-only convenience)
+.pg17/
+.pgdata/
+# Dev server logs
+*.log

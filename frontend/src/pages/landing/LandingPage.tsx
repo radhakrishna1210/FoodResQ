@@ -47,8 +47,8 @@ const STEPS = [
   },
   {
     icon: Brain,
-    title: 'JEV matches',
-    body: 'Hard filters, then an 8-factor score. The best-fit verified Receiver gets an offer with plain-language reasons.',
+    title: 'Smart matching',
+    body: 'Our engine checks every verified Receiver and finds the best fit for your food — not just the nearest one — then sends an offer with clear reasons.',
     color: 'bg-purple-50 text-purple',
   },
   {
@@ -141,7 +141,7 @@ export default function LandingPage() {
             </h1>
             <p className="mt-4 max-w-xl text-base text-white/85 sm:text-lg">
               FoodResQ connects restaurants, hostels and caterers with verified NGOs and shelters.
-              Our JEV engine ranks the best-fit Receiver, not just the nearest, and every rescue is
+              Our engine finds the best-fit Receiver, not just the nearest one, and every rescue is
               confirmed with a handover code.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">

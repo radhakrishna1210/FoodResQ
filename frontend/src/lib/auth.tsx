@@ -1,4 +1,6 @@
-// Session context. Supabase Auth in normal mode; dev auth (POST /dev/login) when DEV_AUTH is on.
+// Session context. Google Sign-In and the dev-login demo panel both resolve to a plain bearer
+// token stored locally (README D6 — no Supabase Auth / password login). Supabase itself is still
+// used elsewhere for storage uploads and realtime (see lib/supabase.ts, lib/realtime.ts).
 import {
   createContext,
   useCallback,
@@ -11,7 +13,6 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, setTokenProvider, setUnauthorizedHandler } from './api';
 import { DEV_AUTH } from './env';
-import { supabase } from './supabase';
 import type { DonorProfile, MeResponse, ReceiverProfile, User, UserRole } from '@/types';
 
 const DEV_TOKEN_KEY = 'foodresq.dev_token';
@@ -66,9 +67,8 @@ export interface AuthContextValue {
   receiverProfile: ReceiverProfile | null;
   onboarded: boolean;
   refreshMe: () => Promise<void>;
-  signInWithPassword: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   devLogin: (email: string) => Promise<void>;
+  completeGoogleLogin: (token: string) => void;
   signOut: () => Promise<void>;
 }
 
@@ -78,33 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
-  // Token provider for api.ts
+  // Token provider for api.ts. DEV_TOKEN_KEY holds either a dev-login token or a real
+  // Google-login token (routers/auth_google.py) — both are plain bearer tokens to the API client.
   useEffect(() => {
-    if (DEV_AUTH) {
-      setTokenProvider(() => readLocal(DEV_TOKEN_KEY));
-      setHasSession(Boolean(readLocal(DEV_TOKEN_KEY)));
-      return;
-    }
-    if (!supabase) {
-      setHasSession(false);
-      return;
-    }
-    const client = supabase;
-    setTokenProvider(async () => {
-      const { data } = await client.auth.getSession();
-      return data.session?.access_token ?? null;
-    });
-    client.auth.getSession().then(({ data }) => setHasSession(Boolean(data.session)));
-    const { data: sub } = client.auth.onAuthStateChange((_event, session) => {
-      setHasSession(Boolean(session));
-      if (!session) qc.clear();
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [qc]);
+    setTokenProvider(() => readLocal(DEV_TOKEN_KEY));
+    setHasSession(Boolean(readLocal(DEV_TOKEN_KEY)));
+  }, []);
 
   const signOut = useCallback(async () => {
-    if (DEV_AUTH) writeLocal(DEV_TOKEN_KEY, null);
-    else if (supabase) await supabase.auth.signOut();
+    writeLocal(DEV_TOKEN_KEY, null);
     setHasSession(false);
     qc.clear();
   }, [qc]);
@@ -128,26 +110,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await qc.refetchQueries({ queryKey: ['me'] });
   }, [qc]);
 
-  const signInWithPassword = useCallback(async (email: string, password: string) => {
-    if (!supabase) throw new Error('Login is not configured. Use a demo account.');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message || 'Could not log in.');
-    setHasSession(true);
-  }, []);
-
-  const signUp = useCallback(async (email: string, password: string) => {
-    if (!supabase) throw new Error('Signup is not configured. Use a demo account.');
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw new Error(error.message || 'Could not sign up.');
-    const needsConfirmation = !data.session;
-    if (!needsConfirmation) setHasSession(true);
-    return { needsConfirmation };
-  }, []);
-
   const devLogin = useCallback(
     async (email: string) => {
       const { access_token } = await api.devLogin(email.trim().toLowerCase());
       writeLocal(DEV_TOKEN_KEY, access_token);
+      qc.removeQueries({ queryKey: ['me'] });
+      setHasSession(true);
+    },
+    [qc],
+  );
+
+  /** Called by the /auth/callback page after a real Google login redirect. */
+  const completeGoogleLogin = useCallback(
+    (token: string) => {
+      writeLocal(DEV_TOKEN_KEY, token);
+      setTokenProvider(() => readLocal(DEV_TOKEN_KEY));
       qc.removeQueries({ queryKey: ['me'] });
       setHasSession(true);
     },
@@ -176,9 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       receiverProfile: role === 'receiver' ? (profile as ReceiverProfile | null) : null,
       onboarded,
       refreshMe,
-      signInWithPassword,
-      signUp,
       devLogin,
+      completeGoogleLogin,
       signOut,
     };
   }, [
@@ -188,9 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     meQuery.error,
     hasSession,
     refreshMe,
-    signInWithPassword,
-    signUp,
     devLogin,
+    completeGoogleLogin,
     signOut,
   ]);
 

@@ -118,7 +118,7 @@ export default function AdminOverviewPage() {
               <EmptyState
                 icon={<AlertTriangle size={22} />}
                 title="No recent no-match alerts"
-                body="Donations the JEV engine could not place show up here for manual assignment."
+                body="Donations the Bridge engine could not place show up here for manual assignment."
               />
             ) : (
               <div className="space-y-3">

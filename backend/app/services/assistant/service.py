@@ -1,9 +1,9 @@
 """Assistant chat loop — ARCHITECTURE §11.1.
 
-Loads the last 20 messages of the conversation, calls the Anthropic Messages API with the system prompt
-and role-specific tools, executes tool calls as the current user, loops until a final text answer (max 4
-tool rounds), stores messages, and returns {conversation_id, reply, draft?}. If the API key is missing or
-the call fails, returns a friendly fallback; the rest of the app keeps working.
+Loads the last 20 messages of the conversation, calls the Google Gemini API (Google AI Studio) with the
+system prompt and role-specific tools, executes tool calls as the current user, loops until a final text
+answer (max 4 tool rounds), stores messages, and returns {conversation_id, reply, draft?}. If the API key
+is missing or the call fails, returns a friendly fallback; the rest of the app keeps working.
 """
 
 import json
@@ -18,23 +18,25 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import AssistantMessage, DonorProfile, ReceiverProfile, User
 from app.services.assistant.prompt import build_system_prompt
-from app.services.assistant.tools import run_tool, tools_for_role
+from app.services.assistant.tools import gemini_tools_for_role, run_tool
 from app.utils.time import now_utc, to_ist
 
 log = logging.getLogger("foodresq.assistant")
 UNAVAILABLE = "Assistant is unavailable right now."
+BLOCKED_FINISH_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "RECITATION", "BLOCKLIST"}
 MAX_TOOL_ROUNDS = 4
 HISTORY_LIMIT = 20
+ROLE_TO_GEMINI = {"user": "user", "assistant": "model"}
 
 
 @lru_cache
 def _client():
     s = get_settings()
-    if not s.anthropic_api_key or not s.anthropic_model:
+    if not s.gemini_api_key or not s.gemini_model:
         return None
-    import anthropic
+    from google import genai
 
-    return anthropic.Anthropic(api_key=s.anthropic_api_key)
+    return genai.Client(api_key=s.gemini_api_key)
 
 
 def _org_name(db: Session, user: User) -> str:
@@ -58,48 +60,58 @@ def _store(db: Session, user: User, conversation_id: uuid.UUID, role: str, conte
     db.add(AssistantMessage(user_id=user.id, conversation_id=conversation_id, role=role, content=content))
 
 
+def _initial_contents(history: list[dict[str, Any]], message: str) -> list[Any]:
+    from google.genai import types
+
+    contents = [types.Content(role=ROLE_TO_GEMINI[m["role"]], parts=[types.Part(text=m["content"])])
+                for m in history]
+    contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
+    return contents
+
+
 def chat(db: Session, user: User, message: str, conversation_id: uuid.UUID | None) -> dict[str, Any]:
     conversation_id = conversation_id or uuid.uuid4()
     client = _client()
     if client is None:
         return {"conversation_id": str(conversation_id), "reply": UNAVAILABLE, "draft": None, "available": False}
 
+    from google.genai import errors, types
+
     now_ist = to_ist(now_utc())
     system = build_system_prompt(user.role, _org_name(db, user), now_ist.strftime("%d %B %Y"),
                                  now_ist.strftime("%I:%M %p"))
-    messages: list[dict[str, Any]] = _history(db, user, conversation_id) + [{"role": "user", "content": message}]
+    contents = _initial_contents(_history(db, user, conversation_id), message)
     _store(db, user, conversation_id, "user", {"text": message})
-    tools = tools_for_role(user.role)
+    config = types.GenerateContentConfig(system_instruction=system, tools=gemini_tools_for_role(user.role),
+                                          max_output_tokens=4096)
     draft: dict | None = None
     reply = ""
 
     try:
-        import anthropic
-
         for _ in range(MAX_TOOL_ROUNDS + 1):
-            response = client.messages.create(model=get_settings().anthropic_model, max_tokens=4096,
-                                              system=system, tools=tools, messages=messages)
-            if response.stop_reason == "refusal":
+            response = client.models.generate_content(model=get_settings().gemini_model, contents=contents,
+                                                       config=config)
+            candidate = response.candidates[0] if response.candidates else None
+            if candidate is None or candidate.finish_reason in BLOCKED_FINISH_REASONS:
                 reply = "I can't help with that. Please use the app screens or contact the FoodResQ team."
                 break
-            if response.stop_reason != "tool_use":
-                reply = "".join(b.text for b in response.content if b.type == "text").strip()
+            parts = candidate.content.parts or []
+            calls = [p.function_call for p in parts if p.function_call]
+            if not calls:
+                reply = "".join(p.text for p in parts if p.text).strip()
                 break
-            messages.append({"role": "assistant", "content": response.content})
-            results = []
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
-                result, maybe_draft = run_tool(db, user, block.name, dict(block.input or {}))
+            contents.append(candidate.content)
+            response_parts = []
+            for call in calls:
+                result, maybe_draft = run_tool(db, user, call.name, dict(call.args or {}))
                 draft = maybe_draft or draft
-                results.append({"type": "tool_result", "tool_use_id": block.id,
-                                "content": result if isinstance(result, str) else json.dumps(result, default=str),
-                                "is_error": isinstance(result, dict) and "error" in result})
-                _store(db, user, conversation_id, "tool", {"name": block.name, "input": block.input})
-            messages.append({"role": "user", "content": results})
+                payload = result if isinstance(result, str) else json.dumps(result, default=str)
+                response_parts.append(types.Part.from_function_response(name=call.name, response={"result": payload}))
+                _store(db, user, conversation_id, "tool", {"name": call.name, "input": dict(call.args or {})})
+            contents.append(types.Content(role="user", parts=response_parts))
         else:
             reply = "Sorry, that took too many steps. Please try a simpler question."
-    except anthropic.APIError:
+    except errors.APIError:
         log.exception("assistant call failed")
         return {"conversation_id": str(conversation_id), "reply": UNAVAILABLE, "draft": None, "available": False}
 

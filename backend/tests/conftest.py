@@ -17,7 +17,7 @@ if TEST_DB:
     os.environ["SCHEDULER_ENABLED"] = "false"
     os.environ["SUPABASE_URL"] = ""
     os.environ["SUPABASE_SERVICE_ROLE_KEY"] = ""
-    os.environ["ANTHROPIC_API_KEY"] = ""
+    os.environ["GEMINI_API_KEY"] = ""
 
 
 def pytest_collection_modifyitems(config, items):
